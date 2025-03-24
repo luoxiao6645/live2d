@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live2D AI 助手</title>
+    <script src="./js/live2dcubismcore.min.js"></script>
+    <script src="./js/live2d.min.js"></script>
+    <script src="./js/pixi.min.js"></script>
+    <script src="./js/cubism4.min.js"></script>
+    <script src="./js/jquery-3.1.1.min.js"></script>
+    <style>
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #control {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 320px;
+            z-index: 1000;
+        }
+        .section {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        #control label, #control input, #control select, #control button {
+            margin: 5px 0;
+            display: block;
+        }
+        #control input[type="text"], 
+        #control input[type="url"], 
+        #control input[type="search"], 
+        #control select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #control button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #control button:hover {
+            background: #45a049;
+        }
+        #control button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #text_talk {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .model-config {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+        .chat-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+        }
+        .audio-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .tts-settings {
+            margin-top: 10px;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        #audio-status {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div id="control">
+        <div class="section">
+            <div class="section-title">模型控制</div>
+            <select id="model_list"></select>
+            <button id="update_model">更新模型</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">语音设置</div>
+            <div class="tts-settings">
+                <select id="voice_selection">
+                    <option value="21m00Tcm4TlvDq8ikWAM">chinese (中文)</option>
+                    <option value="AZnzlk1XvdvUeBnXmlld">Endlish (英语)</option>
+
+                </select>
+                <div class="volume-control">
+                    <label for="volume">音量:</label>
+                    <input type="range" id="volume" min="0" max="1" step="0.1" value="0.7">
+                    <span id="volume-value">70%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Ollama 配置</div>
+            <div class="model-config">
+                <label for="llm_model">语言模型:</label>
+                <select id="llm_model">
+                    <option value="deepseek-r1:7b">deepseek-r1:7b</option>
+                    <option value="qwen2:0.5b">Qwen2 0.5B</option>
+                    <option value="llama2:7b">LLaMA2 7B</option>
+                </select>
+                
+                <label for="temperature">温度:</label>
+                <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                
+                <label for="top_p">Top P:</label>
+                <input type="range" id="top_p" min="0" max="1" step="0.1" value="0.9">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">角色设定</div>
+            <label for="role_prompt">角色设定:</label>
+            <textarea id="role_prompt" rows="3" style="width: 100%">一个AI助手，会认真回答您的问题。</textarea>
+        </div>
+
+        <div class="section">
+            <div class="section-title">对话</div>
+            <div class="chat-container">
+                <textarea id="text_talk" readonly placeholder="对话历史将显示在这里..."></textarea>
+                <div class="chat-input">
+                    <input type="text" id="user_input" placeholder="输入您的问题...">
+                    <button id="send_message">发送</button>
+                </div>
+                <div class="audio-controls">
+                    <button id="play_audio" disabled>播放语音</button>
+                    <button id="stop_audio" disabled>停止语音</button>
+                </div>
+                <div id="audio-status"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">背景设置</div>
+            <input type="color" id="bg_color" value="#FFFFFF">
+            <button id="update_bg">更新背景</button>
+        </div>
+    </div>
+
+    <script>
+        // Live2D 模型配置
+        const modelPaths = {
+            'March 7th': './model/March 7th/March 7th.model3.json',
+            'kei_vowels_pro': './model/kei_vowels_pro/kei_vowels_pro.model3.json',
+            'Nova - F': './model/Nova - F/Nova - F.model3.json',
+            'Hiyori': './model/Hiyori/Hiyori.model3.json',
+            'pachan': './model/pachan/pachan.model3.json'
+        };
+
+        let currentModel;
+        let app;
+        let chatHistory = [];
+        let currentAudio = null;
+        let lastAudioUrl = null;
+
+        // 初始化模型选择下拉框
+        const $modelSelect = $("#model_list");
+        Object.keys(modelPaths).forEach(model => {
+            $modelSelect.append($("<option>").attr("value", model).text(model));
+        });
+
+        // 音频控制函数
+        function updateAudioStatus(message) {
+            document.getElementById('audio-status').textContent = message;
+        }
+
+        function enableAudioControls(enabled = true) {
+            document.getElementById('play_audio').disabled = !enabled;
+            document.getElementById('stop_audio').disabled = !enabled || !currentAudio;
+        }
+
+        function playAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+
+            if (lastAudioUrl) {
+                currentAudio = new Audio(lastAudioUrl);
+                currentAudio.volume = parseFloat(document.getElementById('volume').value);
+                
+                currentAudio.onplay = () => {
+                    enableAudioControls(true);
+                    document.getElementById('play_audio').disabled = true;
+                    document.getElementById('stop_audio').disabled = false;
+                    updateAudioStatus('正在播放...');
+                };
+                
+                currentAudio.onended = () => {
+                    enableAudioControls(true);
+                    document.getElementById('stop_audio').disabled = true;
+                    updateAudioStatus('播放完成');
+                };
+
+                currentAudio.onerror = () => {
+                    updateAudioStatus('音频播放失败');
+                    enableAudioControls(false);
+                };
+                
+                currentAudio.play().catch(error => {
+                    console.error('播放音频失败:', error);
+                    updateAudioStatus('播放失败: ' + error.message);
+                });
+            }
+        }
+
+        function stopAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+                document.getElementById('play_audio').disabled = false;
+                document.getElementById('stop_audio').disabled = true;
+                updateAudioStatus('已停止播放');
+            }
+        }
+
+        // 加载Live2D模型
+        async function loadModel(modelName) {
+            if (!app) {
+                app = new PIXI.Application({
+                    view: document.getElementById("canvas"),
+                    autoStart: true,
+                    resizeTo: window,
+                    transparent: true,
+                });
+            }
+
+            if (currentModel) {
+                app.stage.removeChild(currentModel);
+            }
+            
+            try {
+                const model = await PIXI.live2d.Live2DModel.from(modelPaths[modelName]);
+                app.stage.addChild(model);
+                
+                const scale = Math.min(innerWidth / model.width, innerHeight / model.height);
+                model.scale.set(scale);
+                model.y = innerHeight * 0.1;
+                model.x = innerWidth / 2;
+                
+                currentModel = model;
+                return model;
+            } catch (error) {
+                console.error("加载模型失败:", error);
+            }
+        }
+
+        // 发送消息并处理响应
+        async function sendMessage(message) {
+            const model = $("#llm_model").val();
+            const temperature = parseFloat($("#temperature").val());
+            const top_p = parseFloat($("#top_p").val());
+            const rolePrompt = $("#role_prompt").val();
+            const voiceId = $("#voice_selection").val();
+
+            // 禁用发送按钮，显示加载状态
+            $("#send_message").prop('disabled', true);
+            $("#text_talk").val($("#text_talk").val() + '\n用户: ' + message + '\n助手: ');
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: `${rolePrompt}\n\n用户: ${message}\n助手: `,
+                        model_name: model,
+                        temperature: temperature,
+                        top_p: top_p,
+                        voice_id: voiceId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API请求失败');
+                }
+
+                const reader = response.body.getReader();
+                let fullResponse = '';
+                const textArea = document.getElementById('text_talk');
+
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = new TextDecoder().decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            try {
+                                const data = JSON.parse(line);
+                                if (data.chunk) {
+                                    fullResponse += data.chunk;
+                                    textArea.value = textArea.value.substring(0, textArea.value.lastIndexOf('助手: ') + 4) + fullResponse;
+                                    textArea.scrollTop = textArea.scrollHeight;
+                                }
+                                if (data.done && data.audio_url) {
+                                    console.log('收到音频URL:', data.audio_url);
+                                    lastAudioUrl = data.audio_url;
+                                    enableAudioControls(true);
+                                    updateAudioStatus('音频已准备就绪');
+                                    playAudio(); // 自动播放新生成的音频
+                                }
+                            } catch (e) {
+                                console.error('解析响应失败:', e);
+                            }
+                        }
+                    }
+                }
+
+                chatHistory.push({role: 'user', content: message});
+                chatHistory.push({role: 'assistant', content: fullResponse});
+                
+                updateChatDisplay();
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                alert('发送消息失败，请检查网络连接和服务器状态');
+            } finally {
+                // 恢复发送按钮
+                $("#send_message").prop('disabled', false);
+            }
+        }
+
+        // 更新对话历史显示
+        function updateChatDisplay() {
+            const display = chatHistory.map(msg => 
+                `${msg.role === 'user' ? '用户' : '助手'}: ${msg.content}`
+            ).join('\n\n');
+            $("#text_talk").val(display);
+        }
+
+        // 事件监听器
+        $(document).ready(function() {
+            // 加载初始模型
+            loadModel($modelSelect.val());
+
+            // 更新模型按钮
+            $("#update_model").click(function() {
+                loadModel($modelSelect.val());
+            });
+
+            // 音量控制
+            $("#volume").on('input', function() {
+                const volume = parseFloat(this.value);
+                $("#volume-value").text(Math.round(volume * 100) + '%');
+                if (currentAudio) {
+                    currentAudio.volume = volume;
+                }
+            });
+
+            // 音频控制按钮
+            $("#play_audio").click(playAudio);
+            $("#stop_audio").click(stopAudio);
+
+            // 发送消息按钮
+            $("#send_message").click(function() {
+                const message = $("#user_input").val().trim();
+                if (message) {
+                    sendMessage(message);
+                    $("#user_input").val('');
+                }
+            });
+
+            // 输入框回车发送
+            $("#user_input").keypress(function(e) {
+                if (e.which == 13 && !e.shiftKey) {
+                    $("#send_message").click();
+                    e.preventDefault();
+                }
+            });
+
+            // 更新背景
+            $("#update_bg").click(function() {
+                const color = $("#bg_color").val();
+                document.body.style.backgroundColor = color;
+            });
+
+            // 窗口大小改变时调整模型大小
+            window.addEventListener('resize', function() {
+                if (currentModel) {
+                    const scale = Math.min(innerWidth / currentModel.width, innerHeight / currentModel.height);
+                    currentModel.scale.set(scale);
+                    currentModel.y = innerHeight * 0.1;
+                    currentModel.x = innerWidth / 2;
+                }
+            });
+
+            // 确保音频状态显示区域初始化
+            updateAudioStatus('等待生成语音...');
+        });
+    </script>
+</body>
+</html>
