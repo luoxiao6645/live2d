@@ -175,6 +175,67 @@
             width: 100%;
             margin-bottom: 10px;
         }
+        .dialog {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .dialog-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .close-btn {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .secondary-button {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .dialog-actions {
+            margin-top: 15px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -184,8 +245,19 @@
     <div id="control">
         <div class="section">
             <div class="section-title">模型控制</div>
-            <select id="model_list"></select>
-            <button id="update_model">更新模型</button>
+            <div class="model-selection">
+                <label for="model_list">选择模型:</label>
+                <select id="model_list">
+                    <option value="March 7th">March 7th</option>
+                    <option value="kei_vowels_pro">kei_vowels_pro</option>
+                    <option value="Nova - F">Nova - F</option>
+                    <option value="Hiyori">Hiyori</option>
+                    <option value="pachan">pachan</option>
+                    <option value="EVA RIN normal">EVA RIN normal</option>
+                </select>
+                <button id="update_model">更新模型</button>
+                <button id="check_lfs" class="secondary-button">检查模型文件</button>
+            </div>
         </div>
 
         <div class="section">
@@ -277,14 +349,37 @@
         </div>
     </div>
 
+    <!-- 添加LFS检查结果弹窗 -->
+    <div id="lfs_dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <span class="close-btn">&times;</span>
+            <h3>模型文件检查结果</h3>
+            <div id="lfs_check_result"></div>
+            <div class="dialog-actions">
+                <button id="close_lfs_dialog">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Live2D 模型配置
         const modelPaths = {
-            'March 7th': './model/March 7th/March 7th.model3.json',
-            'kei_vowels_pro': './model/kei_vowels_pro/kei_vowels_pro.model3.json',
-            'Nova - F': './model/Nova - F/Nova - F.model3.json',
-            'Hiyori': './model/Hiyori/Hiyori.model3.json',
-            'pachan': './model/pachan/pachan.model3.json'
+            'March 7th': './models/March 7th/March 7th.model3.json',
+            'kei_vowels_pro': './models/kei_vowels_pro/kei_vowels_pro.model3.json',
+            'Nova - F': './models/Nova - F/Nova - F.model3.json',
+            'Hiyori': './models/Hiyori/Hiyori.model3.json',
+            'pachan': './models/pachan/pachan.model3.json',
+            'EVA RIN normal': './models/EVA RIN normal/EVA RIN normal.model3.json'
+        };
+
+        // 添加模型类型映射
+        const modelTypes = {
+            'March 7th': 'cubism4',
+            'kei_vowels_pro': 'cubism4',
+            'Nova - F': 'cubism4',
+            'Hiyori': 'cubism4',
+            'pachan': 'cubism4',
+            'EVA RIN normal': 'cubism4'
         };
 
         let currentModel;
@@ -387,7 +482,42 @@
             }
             
             try {
-                const model = await PIXI.live2d.Live2DModel.from(modelPaths[modelName]);
+                // 获取模型路径
+                const modelPath = modelPaths[modelName];
+                console.log("准备加载模型:", modelPath);
+                
+                // 检查模型类型
+                let modelType = modelTypes[modelName] || 'cubism4';
+                const isModelCubism2 = modelPath.endsWith('.model.json');
+                const isModelCubism4 = modelPath.endsWith('.model3.json');
+                
+                // 根据文件扩展名确定实际类型
+                if (isModelCubism2) modelType = 'cubism2';
+                if (isModelCubism4) modelType = 'cubism4';
+                
+                console.log("模型类型:", modelType);
+                
+                // 根据类型选择加载方法
+                let model;
+                if (modelType === 'cubism2') {
+                    // 使用Cubism 2引擎加载
+                    console.log("使用Cubism 2引擎加载模型");
+                    
+                    // 检查是否加载了Cubism 2引擎
+                    if (typeof Live2D === 'undefined') {
+                        throw new Error("Cubism 2引擎未加载，无法加载Cubism 2模型");
+                    }
+                    
+                    // 这里实现Cubism 2模型加载逻辑
+                    // 注意：这需要完整的Cubism 2加载实现
+                    alert("Cubism 2模型加载尚未完全实现，请使用Cubism 4模型");
+                    throw new Error("Cubism 2模型加载尚未实现");
+                } else {
+                    // 使用Cubism 4引擎加载
+                    console.log("使用Cubism 4引擎加载模型");
+                    model = await PIXI.live2d.Live2DModel.from(modelPath);
+                }
+                
                 app.stage.addChild(model);
                 
                 const scale = Math.min(innerWidth / model.width, innerHeight / model.height);
@@ -396,9 +526,39 @@
                 model.x = innerWidth / 2;
                 
                 currentModel = model;
+                
+                // 记录加载成功
+                console.log("模型加载成功:", modelName);
                 return model;
             } catch (error) {
                 console.error("加载模型失败:", error);
+                
+                // 记录详细错误信息
+                if (error.message === "Invalid moc data") {
+                    console.error("可能原因：模型格式与引擎不兼容，或模型文件损坏");
+                    
+                    // 发送错误信息到服务器进行记录
+                    try {
+                        await fetch('/api/log_model_error', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model_path: modelPaths[modelName],
+                                error: error.message,
+                                stack: error.stack
+                            })
+                        });
+                    } catch (logError) {
+                        console.error("无法记录错误:", logError);
+                    }
+                    
+                    // 提示用户
+                    alert(`加载模型失败：模型格式可能与引擎不兼容\n请检查 ${modelName} 是否为Cubism 4格式的模型`);
+                } else {
+                    alert(`加载模型失败：${error.message}`);
+                }
             }
         }
 
@@ -490,12 +650,15 @@
 
         // 事件监听器
         $(document).ready(function() {
-            // 加载初始模型
-            loadModel($modelSelect.val());
+            // 加载可用模型列表
+            loadAvailableModels();
+            
+            // 初始模型检查与加载
+            checkAndLoadModel($modelSelect.val());
 
             // 更新模型按钮
             $("#update_model").click(function() {
-                loadModel($modelSelect.val());
+                checkAndLoadModel($modelSelect.val());
             });
 
             // 音量控制
@@ -584,6 +747,154 @@
             // 确保音频状态显示区域初始化
             updateAudioStatus('等待生成语音...');
         });
+        
+        // 加载可用模型列表
+        async function loadAvailableModels() {
+            try {
+                const response = await fetch('/get_model_list');
+                if (!response.ok) {
+                    throw new Error('获取模型列表失败');
+                }
+                
+                const models = await response.json();
+                console.log("服务器返回模型列表:", models);
+                
+                // 更新模型选择下拉框
+                const $modelSelect = $("#model_list");
+                $modelSelect.empty();
+                
+                models.forEach(model => {
+                    modelPaths[model.name] = model.path;
+                    modelTypes[model.name] = model.type;
+                    $modelSelect.append($("<option>").attr("value", model.name).text(model.name));
+                });
+                
+                // 如果没有模型，显示提示
+                if (models.length === 0) {
+                    alert("没有找到可用的Live2D模型，请确保模型文件夹存在并包含有效模型");
+                }
+            } catch (error) {
+                console.error('加载模型列表失败:', error);
+                alert('无法加载模型列表，请检查服务器状态');
+            }
+        }
+        
+        // 检查并加载模型
+        async function checkAndLoadModel(modelName) {
+            try {
+                const modelPath = modelPaths[modelName];
+                if (!modelPath) {
+                    alert(`找不到模型 ${modelName} 的路径配置`);
+                    return;
+                }
+                
+                console.log(`开始验证模型: ${modelName} (${modelPath})`);
+                
+                // 验证模型文件
+                const verifyResponse = await fetch(`/api/verify_model_files/${modelPath}`);
+                const verifyResult = await verifyResponse.json();
+                
+                console.log("模型验证结果:", verifyResult);
+                
+                if (!verifyResult.is_valid) {
+                    let missingFiles = verifyResult.missing_files.join("\n- ");
+                    alert(`模型 ${modelName} 缺少必要文件:\n- ${missingFiles}`);
+                    return;
+                }
+                
+                if (verifyResult.model_type === "cubism2" && modelTypes[modelName] === "cubism4") {
+                    alert(`警告: ${modelName} 是Cubism 2格式，但当前配置为使用Cubism 4引擎加载`);
+                }
+                
+                if (verifyResult.model_type === "cubism4" && modelTypes[modelName] === "cubism2") {
+                    alert(`警告: ${modelName} 是Cubism 4格式，但当前配置为使用Cubism 2引擎加载`);
+                }
+                
+                // 加载模型
+                console.log(`验证通过，开始加载模型: ${modelName}`);
+                loadModel(modelName);
+                
+            } catch (error) {
+                console.error('验证模型失败:', error);
+                alert(`验证模型 ${modelName} 时出错: ${error.message}`);
+            }
+        }
+
+        // 检查LFS指针
+        async function checkLFSPointers() {
+            try {
+                const response = await fetch('/api/check_lfs_pointers');
+                if (!response.ok) {
+                    throw new Error('检查LFS指针失败');
+                }
+                
+                const result = await response.json();
+                console.log("LFS检查结果:", result);
+                
+                let html = '';
+                
+                if (result.lfs_pointers_found) {
+                    html += `<div class="alert alert-danger">
+                        <p><strong>发现Git LFS指针文件!</strong></p>
+                        <p>您的模型文件是Git LFS指针，而不是实际的模型数据，这就是模型无法加载的原因。</p>
+                    </div>`;
+                    
+                    html += `<h4>受影响的文件：</h4><ul>`;
+                    result.files.forEach(file => {
+                        html += `<li>${file.path} (当前大小: ${file.size} 字节, 预期大小: ${file.expected_size})</li>`;
+                    });
+                    html += `</ul>`;
+                    
+                    html += `<h4>解决方案：</h4>`;
+                    
+                    if (result.git_lfs_installed) {
+                        html += `<p>1. Git LFS已安装，请运行以下命令拉取实际的模型文件：</p>
+                        <pre>cd ${result.repo_path}
+git lfs pull</pre>`;
+                    } else {
+                        html += `<p>1. 您需要安装Git LFS并拉取模型文件：</p>
+                        <pre># 下载并安装Git LFS: https://git-lfs.github.com/
+# 然后运行:
+cd ${result.repo_path}
+git lfs install
+git lfs pull</pre>`;
+                    }
+                    
+                    html += `<p>2. 或者，您可以从Live2D官方网站下载示例模型：</p>
+                    <p><a href="https://www.live2d.com/en/download/sample-data/" target="_blank">https://www.live2d.com/en/download/sample-data/</a></p>`;
+                } else {
+                    html += `<div class="alert alert-success">
+                        <p><strong>模型文件检查正常</strong></p>
+                        <p>未发现Git LFS指针问题。请检查其他可能导致模型加载失败的因素：</p>
+                        <ul>
+                            <li>模型格式与引擎版本是否匹配 (Cubism 2 vs Cubism 4)</li>
+                            <li>模型文件是否完整且未损坏</li>
+                            <li>模型配置文件中的路径是否正确</li>
+                        </ul>
+                    </div>`;
+                }
+                
+                // 显示结果
+                document.getElementById('lfs_check_result').innerHTML = html;
+                document.getElementById('lfs_dialog').style.display = 'block';
+                
+            } catch (error) {
+                console.error('检查LFS指针失败:', error);
+                alert(`检查模型文件失败: ${error.message}`);
+            }
+        }
+        
+        // 处理对话框关闭
+        document.querySelector('.close-btn').addEventListener('click', function() {
+            document.getElementById('lfs_dialog').style.display = 'none';
+        });
+        
+        document.getElementById('close_lfs_dialog').addEventListener('click', function() {
+            document.getElementById('lfs_dialog').style.display = 'none';
+        });
+        
+        // 绑定检查按钮事件
+        document.getElementById('check_lfs').addEventListener('click', checkLFSPointers);
     </script>
 </body>
 </html>
