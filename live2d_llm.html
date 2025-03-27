@@ -850,37 +850,68 @@
 
         // 加载Live2D模型
         async function loadModel(modelName) {
-            // 清理现有模型的状态
-            if (currentModel) {
-                // 停止口型同步
-                stopLipSync();
-                
-                // 清理表情计时器
-                if (expressionTimeout) {
-                    clearTimeout(expressionTimeout);
-                    expressionTimeout = null;
+            try {
+                console.log("开始清理旧模型资源...");
+                // 清理现有模型的状态
+                if (currentModel) {
+                    console.log("发现旧模型，执行清理流程");
+                    // 停止口型同步
+                    stopLipSync();
+                    
+                    // 清理表情计时器
+                    if (expressionTimeout) {
+                        clearTimeout(expressionTimeout);
+                        expressionTimeout = null;
+                    }
+                    
+                    // 移除旧模型
+                    console.log("从舞台移除旧模型");
+                    app.stage.removeChild(currentModel);
+                    
+                    // 完全销毁模型实例
+                    console.log("销毁旧模型资源");
+                    if (typeof currentModel.destroy === 'function') {
+                        currentModel.destroy({children: true, texture: true, baseTexture: true});
+                    }
+                    currentModel = null;
+                    
+                    // 强制垃圾回收提示
+                    setTimeout(() => {
+                        // 可选：手动执行一次浏览器垃圾回收
+                        if (window.gc) window.gc();
+                        console.log("旧模型清理完成");
+                    }, 100);
                 }
                 
-                // 移除旧模型
-                app.stage.removeChild(currentModel);
-                currentModel = null;
-            }
-            
-            if (!app) {
-                // 修正：确保画布背景透明
-                app = new PIXI.Application({
-                    view: document.getElementById("canvas"),
-                    autoStart: true,
-                    resizeTo: window,
-                    transparent: true,
-                    backgroundAlpha: 0
-                });
-            }
-            
-            try {
+                // 初始化PIXI应用或清理舞台
+                if (!app) {
+                    console.log("创建PIXI应用");
+                    // 创建PIXI应用
+                    app = new PIXI.Application({
+                        view: document.getElementById("canvas"),
+                        autoStart: true,
+                        resizeTo: window,
+                        transparent: true,
+                        backgroundAlpha: 0
+                    });
+                } else {
+                    console.log("清理PIXI舞台");
+                    // 清理舞台，移除所有子元素
+                    while(app.stage.children.length > 0) {
+                        const child = app.stage.getChildAt(0);
+                        app.stage.removeChild(child);
+                        if (typeof child.destroy === 'function') {
+                            child.destroy({children: true, texture: true, baseTexture: true});
+                        }
+                    }
+                }
+                
+                // 确保舞台是空的
+                console.log("当前舞台子元素数量:", app.stage.children.length);
+                
                 // 获取模型路径
                 const modelPath = modelPaths[modelName];
-                console.log("准备加载模型:", modelPath);
+                console.log("准备加载新模型:", modelPath);
                 
                 // 检查模型类型
                 let modelType = modelTypes[modelName] || 'cubism4';
@@ -914,13 +945,16 @@
                     model = await PIXI.live2d.Live2DModel.from(modelPath);
                 }
                 
+                console.log("模型加载完成，添加到舞台");
                 app.stage.addChild(model);
                 
+                // 调整模型大小和位置
                 const scale = Math.min(innerWidth / model.width, innerHeight / model.height);
                 model.scale.set(scale);
                 model.y = innerHeight * 0.1;
                 model.x = innerWidth / 2;
                 
+                // 设置当前模型引用
                 currentModel = model;
                 
                 // 添加交互能力
