@@ -198,13 +198,14 @@
         
         .close-btn {
             float: right;
-            font-size: 24px;
             cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2em;
         }
         
         .alert {
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 10px;
+            margin: 10px 0;
             border-radius: 4px;
         }
         
@@ -235,6 +236,65 @@
         .dialog-actions {
             margin-top: 15px;
             text-align: right;
+        }
+        
+        /* 新增：口型同步控制样式 */
+        .lipsync-settings {
+            margin-top: 5px;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            flex: 0 0 120px;
+        }
+        
+        .control-group input[type="range"] {
+            flex: 1;
+        }
+        
+        .control-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            display: inline-block;
+        }
+        
+        #mouth-value {
+            min-width: 30px;
+            text-align: right;
+        }
+        
+        /* 美化范围滑块 */
+        input[type="range"] {
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
         }
     </style>
 </head>
@@ -271,6 +331,30 @@
                     <label for="volume">音量:</label>
                     <input type="range" id="volume" min="0" max="1" step="0.1" value="0.7">
                     <span id="volume-value">70%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">口型同步设置</div>
+            <div class="lipsync-settings">
+                <div class="control-group">
+                    <label for="lipsync_enabled">启用口型同步:</label>
+                    <input type="checkbox" id="lipsync_enabled" checked>
+                </div>
+                <div class="control-group">
+                    <label for="mouth_intensity">嘴巴开合强度:</label>
+                    <input type="range" id="mouth_intensity" min="0.5" max="2.5" step="0.1" value="1.5">
+                    <span id="mouth-value">1.5</span>
+                </div>
+                <div class="control-group">
+                    <label for="blink_frequency">眨眼频率:</label>
+                    <select id="blink_frequency">
+                        <option value="high">高频率</option>
+                        <option value="medium" selected>中频率</option>
+                        <option value="low">低频率</option>
+                        <option value="none">不眨眼</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -382,11 +466,96 @@
             'EVA RIN normal': 'cubism4'
         };
 
+        // 添加情绪和动作系统
+        const emotionKeywords = {
+            '开心': ['高兴', '快乐', '欢喜', '喜悦', '兴奋', '愉快', '笑'],
+            '悲伤': ['难过', '伤心', '哭', '忧伤', '悲痛', '难受', '苦恼', '不开心'],
+            '惊讶': ['震惊', '吃惊', '惊讶', '意外', '没想到', '不可思议'],
+            '生气': ['愤怒', '恼火', '不爽', '讨厌', '恨', '烦躁', '不悦'],
+            '害羞': ['羞涩', '害羞', '不好意思', '腼腆', '难为情'],
+            '疑惑': ['困惑', '疑问', '不解', '迷惑', '不明白', '不懂']
+        };
+
+        // 对应的表情和动作配置
+        const expressionActions = {
+            '开心': { 
+                parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [1, 0.8, 0.8, 0.5, 0.5],
+                duration: 8000,  // 表情持续时间（毫秒）
+                priority: 2      // 表情优先级
+            },
+            '悲伤': { 
+                parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [-0.8, 0.5, 0.5, -0.8, -0.8],
+                duration: 10000,
+                priority: 3
+            },
+            '惊讶': { 
+                parameterIds: ['ParamMouthOpenY', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [0.5, 1.2, 1.2, 1, 1],
+                duration: 7000,
+                priority: 3
+            },
+            '生气': { 
+                parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [-0.5, 0.8, 0.8, -1, -1],
+                duration: 10000,
+                priority: 3
+            },
+            '害羞': { 
+                parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [0.2, 0.7, 0.7, 0.2, 0.2],
+                duration: 8000,
+                priority: 2
+            },
+            '疑惑': { 
+                parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
+                parameterValues: [0, 0.8, 0.8, -0.5, 0.5],
+                duration: 6000,
+                priority: 1
+            }
+        };
+
+        // 口型同步参数配置
+        const lipSyncParams = {
+            // 控制嘴巴开合的参数
+            mouthOpenY: 'ParamMouthOpenY',  // 嘴巴开合参数
+            mouthForm: 'ParamMouthForm',    // 嘴巴形态参数
+            // 眨眼相关参数
+            eyeL: 'ParamEyeLOpen',          // 左眼开合参数
+            eyeR: 'ParamEyeROpen',          // 右眼开合参数
+            // 动画配置
+            blinkInterval: [3000, 7000],    // 眨眼间隔范围（毫秒）
+            blinkDuration: 100,             // 眨眼持续时间（毫秒）
+            // 音频分析配置
+            audioAnalysisInterval: 50,      // 音频分析间隔（毫秒）
+            mouthOpenMax: 1.5,              // 嘴巴最大开度
+            mouthOpenMin: 0.0,              // 嘴巴最小开度
+            volumeThreshold: 0.01           // 音量阈值
+        };
+
+        // 添加动作配置
+        const motionGroups = {
+            '打招呼': ['motion/tap_head.motion3.json', 'motion/shake_body.motion3.json'],
+            '点头': ['motion/nod.motion3.json'],
+            '摇头': ['motion/shake_head.motion3.json'],
+            '思考': ['motion/thinking.motion3.json'],
+            '跳舞': ['motion/dance.motion3.json']
+        };
+
         let currentModel;
         let app;
         let chatHistory = [];
         let currentAudio = null;
         let lastAudioUrl = null;
+        let currentExpression = null;
+        let expressionTimeout = null;
+        let lipSyncActive = false;
+        let lipSyncInterval = null;
+        let lastBlinkTime = 0;
+        let audioContext = null;
+        let audioAnalyser = null;
+        let audioDataArray = null;
 
         // 初始化模型选择下拉框
         const $modelSelect = $("#model_list");
@@ -408,33 +577,43 @@
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio = null;
+                stopLipSync();
             }
 
             if (lastAudioUrl) {
                 currentAudio = new Audio(lastAudioUrl);
                 currentAudio.volume = parseFloat(document.getElementById('volume').value);
                 
+                // 准备音频分析
+                setupAudioAnalysis(currentAudio);
+                
                 currentAudio.onplay = () => {
                     enableAudioControls(true);
                     document.getElementById('play_audio').disabled = true;
                     document.getElementById('stop_audio').disabled = false;
                     updateAudioStatus('正在播放...');
+                    // 开始口型同步
+                    startLipSync();
                 };
                 
                 currentAudio.onended = () => {
                     enableAudioControls(true);
                     document.getElementById('stop_audio').disabled = true;
                     updateAudioStatus('播放完成');
+                    // 停止口型同步
+                    stopLipSync();
                 };
 
                 currentAudio.onerror = () => {
                     updateAudioStatus('音频播放失败');
                     enableAudioControls(false);
+                    stopLipSync();
                 };
                 
                 currentAudio.play().catch(error => {
                     console.error('播放音频失败:', error);
                     updateAudioStatus('播放失败: ' + error.message);
+                    stopLipSync();
                 });
             }
         }
@@ -447,7 +626,212 @@
                 document.getElementById('play_audio').disabled = false;
                 document.getElementById('stop_audio').disabled = true;
                 updateAudioStatus('已停止播放');
+                // 停止口型同步
+                stopLipSync();
             }
+        }
+
+        // 新增：音频分析和口型同步功能
+        function setupAudioAnalysis(audio) {
+            try {
+                // 清理旧的分析器
+                if (audioAnalyser) {
+                    try {
+                        audioAnalyser.disconnect();
+                    } catch (e) {
+                        console.log("断开旧分析器连接时出错:", e);
+                    }
+                    audioAnalyser = null;
+                }
+                
+                // 确保AudioContext已初始化
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log("AudioContext已初始化");
+                    } catch (error) {
+                        console.error("初始化AudioContext失败:", error);
+                        return;
+                    }
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().catch(err => {
+                        console.error("恢复AudioContext失败:", err);
+                    });
+                }
+                
+                if (!audioContext || audioContext.state === 'closed') {
+                    console.warn("AudioContext不可用，无法设置音频分析");
+                    return;
+                }
+                
+                // 创建媒体元素源和分析器
+                const source = audioContext.createMediaElementSource(audio);
+                audioAnalyser = audioContext.createAnalyser();
+                audioAnalyser.fftSize = 256;
+                
+                // 连接音频节点：源 -> 分析器 -> 输出
+                source.connect(audioAnalyser);
+                audioAnalyser.connect(audioContext.destination);
+                
+                // 创建数据数组接收频域数据
+                const bufferLength = audioAnalyser.frequencyBinCount;
+                audioDataArray = new Uint8Array(bufferLength);
+                
+                console.log("音频分析器已设置完成");
+                
+            } catch (error) {
+                console.error("设置音频分析失败:", error);
+                if (error.name === "InvalidAccessError") {
+                    console.error("可能是重复连接媒体源，尝试使用新的AudioContext");
+                    audioContext = null;
+                    audioAnalyser = null;
+                    audioDataArray = null;
+                    // 延迟重试一次
+                    setTimeout(() => setupAudioAnalysis(audio), 100);
+                    return;
+                }
+                audioAnalyser = null;
+                audioDataArray = null;
+            }
+        }
+
+        // 启动口型同步
+        function startLipSync() {
+            if (lipSyncActive || !currentModel) return;
+            
+            // 检查是否禁用了口型同步
+            if (!$('#lipsync_enabled').is(':checked')) {
+                return;
+            }
+            
+            // 确保有效的音频分析器
+            if (!audioAnalyser || !audioDataArray) {
+                console.warn("音频分析器未准备好，无法启动口型同步");
+                return;
+            }
+            
+            lipSyncActive = true;
+            lastBlinkTime = Date.now();
+            
+            console.log("开始口型同步");
+            
+            // 开始口型同步定时器
+            lipSyncInterval = setInterval(() => {
+                if (!currentAudio || currentAudio.paused) {
+                    resetMouthParameters();
+                    return;
+                }
+                
+                try {
+                    // 获取音频数据
+                    audioAnalyser.getByteFrequencyData(audioDataArray);
+                    
+                    // 计算平均音量 (简单方法)
+                    let sum = 0;
+                    for (let i = 0; i < audioDataArray.length; i++) {
+                        sum += audioDataArray[i];
+                    }
+                    const averageVolume = sum / audioDataArray.length / 255; // 归一化到0-1
+                    
+                    // 根据音量设置嘴型参数
+                    if (averageVolume > lipSyncParams.volumeThreshold) {
+                        const mouthOpen = lipSyncParams.mouthOpenMin + 
+                                        (averageVolume * (lipSyncParams.mouthOpenMax - lipSyncParams.mouthOpenMin));
+                                        
+                        // 设置嘴巴开合度
+                        setMouthParameters(mouthOpen);
+                    } else {
+                        // 音量低于阈值，关闭嘴巴
+                        resetMouthParameters();
+                    }
+                    
+                    // 随机眨眼
+                    const now = Date.now();
+                    if (now - lastBlinkTime > getRandomInt(lipSyncParams.blinkInterval[0], lipSyncParams.blinkInterval[1])) {
+                        blinkEyes();
+                        lastBlinkTime = now;
+                    }
+                } catch (error) {
+                    console.error("口型同步更新失败:", error);
+                }
+                
+            }, lipSyncParams.audioAnalysisInterval);
+            
+            console.log("已启动口型同步");
+        }
+
+        // 停止口型同步
+        function stopLipSync() {
+            if (lipSyncInterval) {
+                clearInterval(lipSyncInterval);
+                lipSyncInterval = null;
+            }
+            
+            // 重置口型参数
+            resetMouthParameters();
+            lipSyncActive = false;
+            console.log("已停止口型同步");
+        }
+
+        // 设置嘴型参数
+        function setMouthParameters(openValue) {
+            if (!currentModel) return;
+            
+            try {
+                // 设置嘴巴开合度
+                currentModel.internalModel.coreModel.setParameterValueById(
+                    lipSyncParams.mouthOpenY, 
+                    Math.min(Math.max(openValue, 0), lipSyncParams.mouthOpenMax)
+                );
+                
+                // 微调嘴型形态，让动画更自然
+                const formValue = openValue > 0.5 ? -0.2 : 0.1; // 嘴巴大开时收紧嘴角
+                currentModel.internalModel.coreModel.setParameterValueById(
+                    lipSyncParams.mouthForm, 
+                    formValue
+                );
+            } catch (error) {
+                console.warn("设置嘴型参数失败:", error);
+            }
+        }
+
+        // 重置嘴型参数
+        function resetMouthParameters() {
+            if (!currentModel) return;
+            
+            try {
+                // 重置嘴巴开合和形态
+                currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.mouthOpenY, 0);
+                currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.mouthForm, 0);
+            } catch (error) {
+                console.warn("重置嘴型参数失败:", error);
+            }
+        }
+
+        // 眨眼动画
+        function blinkEyes() {
+            if (!currentModel) return;
+            
+            try {
+                // 快速闭眼
+                currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeL, 0);
+                currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeR, 0);
+                
+                // 恢复睁眼
+                setTimeout(() => {
+                    currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeL, 1);
+                    currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeR, 1);
+                }, lipSyncParams.blinkDuration);
+            } catch (error) {
+                console.warn("眨眼动画失败:", error);
+            }
+        }
+
+        // 辅助函数：获取指定范围内的随机整数
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
         // 背景控制函数
@@ -466,6 +850,22 @@
 
         // 加载Live2D模型
         async function loadModel(modelName) {
+            // 清理现有模型的状态
+            if (currentModel) {
+                // 停止口型同步
+                stopLipSync();
+                
+                // 清理表情计时器
+                if (expressionTimeout) {
+                    clearTimeout(expressionTimeout);
+                    expressionTimeout = null;
+                }
+                
+                // 移除旧模型
+                app.stage.removeChild(currentModel);
+                currentModel = null;
+            }
+            
             if (!app) {
                 // 修正：确保画布背景透明
                 app = new PIXI.Application({
@@ -475,10 +875,6 @@
                     transparent: true,
                     backgroundAlpha: 0
                 });
-            }
-
-            if (currentModel) {
-                app.stage.removeChild(currentModel);
             }
             
             try {
@@ -527,6 +923,19 @@
                 
                 currentModel = model;
                 
+                // 添加交互能力
+                model.on('hit', (hitAreas) => {
+                    console.log('Touched area:', hitAreas);
+                    if (hitAreas.includes('Head')) {
+                        playModelMotion('打招呼');
+                    } else if (hitAreas.includes('Body')) {
+                        playModelMotion('点头');
+                    }
+                });
+                
+                // 加载默认表情
+                setModelExpression('开心');
+                
                 // 记录加载成功
                 console.log("模型加载成功:", modelName);
                 return model;
@@ -562,6 +971,198 @@
             }
         }
 
+        // 新增：设置模型表情
+        async function setModelExpression(expressionName) {
+            if (!currentModel) return;
+            
+            try {
+                const config = expressionActions[expressionName];
+                if (!config) {
+                    console.warn(`未找到表情配置: ${expressionName}`);
+                    return;
+                }
+                
+                // 检查是否应该覆盖当前表情
+                if (currentExpression) {
+                    const currentConfig = expressionActions[currentExpression];
+                    if (currentConfig && currentConfig.priority > config.priority) {
+                        console.log(`表情 ${expressionName} 优先级低于当前表情 ${currentExpression}，不切换`);
+                        return;
+                    }
+                }
+                
+                // 清除之前的表情timeout
+                if (expressionTimeout) {
+                    clearTimeout(expressionTimeout);
+                    expressionTimeout = null;
+                }
+                
+                console.log(`设置表情: ${expressionName}`);
+                
+                // 使用参数控制设置表情
+                if (config.parameterIds && config.parameterValues) {
+                    for (let i = 0; i < config.parameterIds.length; i++) {
+                        const paramId = config.parameterIds[i];
+                        const paramValue = config.parameterValues[i];
+                        
+                        try {
+                            // 使用补间动画平滑过渡
+                            const currentValue = currentModel.internalModel.coreModel.getParameterValueById(paramId);
+                            animateParameter(paramId, currentValue, paramValue, 300); // 300ms平滑过渡
+                        } catch (paramError) {
+                            console.warn(`设置参数失败 ${paramId}: ${paramError.message}`);
+                            // 尝试直接设置
+                            try {
+                                currentModel.internalModel.coreModel.setParameterValueById(paramId, paramValue);
+                            } catch (e) {
+                                console.error(`设置参数彻底失败 ${paramId}: ${e.message}`);
+                            }
+                        }
+                    }
+                }
+                
+                currentExpression = expressionName;
+                
+                // 设置表情持续时间
+                const duration = config.duration || 5000;
+                
+                // 定时恢复默认表情
+                expressionTimeout = setTimeout(() => {
+                    try {
+                        // 平滑恢复默认表情参数
+                        if (config.parameterIds) {
+                            for (let i = 0; i < config.parameterIds.length; i++) {
+                                const paramId = config.parameterIds[i];
+                                const currentValue = currentModel.internalModel.coreModel.getParameterValueById(paramId);
+                                animateParameter(paramId, currentValue, 0, 500); // 500ms平滑过渡到默认值
+                            }
+                        }
+                        
+                        console.log(`表情 ${expressionName} 已恢复默认状态`);
+                        currentExpression = null;
+                    } catch (e) {
+                        console.warn("恢复默认表情失败:", e);
+                    }
+                    
+                    expressionTimeout = null;
+                }, duration);
+                
+            } catch (error) {
+                console.error(`设置表情失败 ${expressionName}:`, error);
+            }
+        }
+        
+        // 参数动画函数：平滑过渡
+        function animateParameter(paramId, startValue, targetValue, duration) {
+            if (!currentModel) return;
+            
+            const startTime = Date.now();
+            const animate = () => {
+                if (!currentModel) return;
+                
+                const now = Date.now();
+                const elapsed = now - startTime;
+                
+                if (elapsed >= duration) {
+                    // 动画结束，设置最终值
+                    currentModel.internalModel.coreModel.setParameterValueById(paramId, targetValue);
+                    return;
+                }
+                
+                // 计算当前进度（使用缓动函数）
+                const progress = elapsed / duration;
+                const easedProgress = 0.5 - 0.5 * Math.cos(Math.PI * progress);
+                
+                // 计算当前值
+                const currentValue = startValue + (targetValue - startValue) * easedProgress;
+                
+                // 设置参数值
+                currentModel.internalModel.coreModel.setParameterValueById(paramId, currentValue);
+                
+                // 继续动画
+                requestAnimationFrame(animate);
+            };
+            
+            // 启动动画
+            animate();
+        }
+        
+        // 新增：播放模型动作
+        async function playModelMotion(motionType) {
+            if (!currentModel) return;
+            
+            try {
+                const motions = motionGroups[motionType];
+                if (!motions || motions.length === 0) {
+                    console.warn(`未找到动作组: ${motionType}`);
+                    return;
+                }
+                
+                // 随机选择一个动作
+                const randomMotion = motions[Math.floor(Math.random() * motions.length)];
+                console.log(`播放动作: ${motionType} - ${randomMotion}`);
+                
+                // 尝试播放动作
+                try {
+                    await currentModel.motion(motionType, randomMotion);
+                } catch (motionError) {
+                    console.warn(`无法使用motion方法播放动作: ${motionError.message}`);
+                    
+                    // 尝试通过组名播放
+                    try {
+                        await currentModel.motion(motionType);
+                    } catch (groupError) {
+                        console.error(`通过组名播放动作失败: ${groupError.message}`);
+                    }
+                }
+            } catch (error) {
+                console.error(`播放动作失败 ${motionType}:`, error);
+            }
+        }
+        
+        // 新增：分析文本情感并触发表情和动作
+        function analyzeEmotionAndPlayAction(text) {
+            if (!text || !currentModel) return;
+            
+            // 将文本转为小写并去除标点
+            const normalizedText = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+            
+            // 检测情感关键词
+            let detectedEmotion = null;
+            let maxMatches = 0;
+            
+            for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+                let matches = 0;
+                for (const keyword of keywords) {
+                    if (normalizedText.includes(keyword)) {
+                        matches++;
+                    }
+                }
+                
+                if (matches > maxMatches) {
+                    maxMatches = matches;
+                    detectedEmotion = emotion;
+                }
+            }
+            
+            // 如果检测到情感，设置表情
+            if (detectedEmotion && maxMatches > 0) {
+                console.log(`检测到情感: ${detectedEmotion} (匹配度: ${maxMatches})`);
+                setModelExpression(detectedEmotion);
+                
+                // 根据情感选择合适的动作
+                if (detectedEmotion === '开心') {
+                    playModelMotion('打招呼');
+                } else if (detectedEmotion === '悲伤') {
+                    playModelMotion('摇头');
+                } else if (detectedEmotion === '惊讶') {
+                    playModelMotion('跳舞');
+                } else if (detectedEmotion === '疑惑') {
+                    playModelMotion('思考');
+                }
+            }
+        }
+
         // 发送消息并处理响应
         async function sendMessage(message) {
             const model = $("#llm_model").val();
@@ -575,13 +1176,18 @@
             $("#text_talk").val($("#text_talk").val() + '\n用户: ' + message + '\n助手: ');
 
             try {
+                // 修复角色设定问题，确保角色设定与API正确对接
+                console.log("发送请求，角色设定:", rolePrompt);
+                
                 const response = await fetch('/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        prompt: `${rolePrompt}\n\n用户: ${message}\n助手: `,
+                        prompt: message,
+                        role_prompt: rolePrompt,  // 添加单独的角色设定字段
+                        session_id: null,  // 确保创建新会话
                         model_name: model,
                         temperature: temperature,
                         top_p: top_p,
@@ -590,62 +1196,70 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('API请求失败');
+                    throw new Error('API请求失败: ' + response.status);
                 }
 
                 const reader = response.body.getReader();
                 let fullResponse = '';
                 const textArea = document.getElementById('text_talk');
+                
+                // 设置思考表情和动作
+                setModelExpression('疑惑');
+                playModelMotion('思考');
 
                 while (true) {
-                    const {value, done} = await reader.read();
+                    const { done, value } = await reader.read();
                     if (done) break;
-                    
-                    const chunk = new TextDecoder().decode(value);
-                    const lines = chunk.split('\n');
-                    
+
+                    const text = new TextDecoder().decode(value);
+                    const lines = text.split('\n').filter(line => line.trim());
+
                     for (const line of lines) {
-                        if (line.trim()) {
-                            try {
-                                const data = JSON.parse(line);
-                                if (data.chunk) {
-                                    fullResponse += data.chunk;
-                                    textArea.value = textArea.value.substring(0, textArea.value.lastIndexOf('助手: ') + 4) + fullResponse;
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.chunk) {
+                                fullResponse += data.chunk;
+                                // 修复文本显示问题
+                                const currentText = textArea.value;
+                                const assistantPrefix = '助手: ';
+                                const assistantStartPos = currentText.lastIndexOf(assistantPrefix);
+                                
+                                if (assistantStartPos !== -1) {
+                                    textArea.value = currentText.substring(0, assistantStartPos + assistantPrefix.length) + fullResponse;
                                     textArea.scrollTop = textArea.scrollHeight;
                                 }
-                                if (data.done && data.audio_url) {
-                                    console.log('收到音频URL:', data.audio_url);
-                                    lastAudioUrl = data.audio_url;
-                                    enableAudioControls(true);
-                                    updateAudioStatus('音频已准备就绪');
-                                    playAudio(); // 自动播放新生成的音频
-                                }
-                            } catch (e) {
-                                console.error('解析响应失败:', e);
                             }
+
+                            if (data.done) {
+                                lastAudioUrl = data.audio_url;
+                                enableAudioControls(!!lastAudioUrl);
+                                
+                                // 分析响应文本，设置表情和动作
+                                analyzeEmotionAndPlayAction(fullResponse);
+                                
+                                if (lastAudioUrl) {
+                                    updateAudioStatus('语音生成完成');
+                                    playAudio(); // 自动播放
+                                } else {
+                                    updateAudioStatus('未生成语音');
+                                }
+                            }
+                        } catch (e) {
+                            console.error('解析流数据失败:', e, line);
                         }
                     }
                 }
 
-                chatHistory.push({role: 'user', content: message});
-                chatHistory.push({role: 'assistant', content: fullResponse});
-                
-                updateChatDisplay();
+                // 恢复按钮状态
+                $("#send_message").prop('disabled', false);
             } catch (error) {
                 console.error('发送消息失败:', error);
-                alert('发送消息失败，请检查网络连接和服务器状态');
-            } finally {
-                // 恢复发送按钮
+                $("#text_talk").val($("#text_talk").val() + '发送失败: ' + error.message);
                 $("#send_message").prop('disabled', false);
+                
+                // 设置悲伤表情
+                setModelExpression('悲伤');
             }
-        }
-
-        // 更新对话历史显示
-        function updateChatDisplay() {
-            const display = chatHistory.map(msg => 
-                `${msg.role === 'user' ? '用户' : '助手'}: ${msg.content}`
-            ).join('\n\n');
-            $("#text_talk").val(display);
         }
 
         // 事件监听器
@@ -658,7 +1272,8 @@
 
             // 更新模型按钮
             $("#update_model").click(function() {
-                checkAndLoadModel($modelSelect.val());
+                const modelName = $("#model_list").val();
+                checkAndLoadModel(modelName);
             });
 
             // 音量控制
@@ -671,11 +1286,18 @@
             });
 
             // 音频控制按钮
-            $("#play_audio").click(playAudio);
+            $("#play_audio").click(function() {
+                // 尝试初始化音频上下文（需要用户交互）
+                initAudioContext();
+                playAudio();
+            });
             $("#stop_audio").click(stopAudio);
 
             // 发送消息按钮
             $("#send_message").click(function() {
+                // 尝试初始化音频上下文（需要用户交互）
+                initAudioContext();
+                
                 const message = $("#user_input").val().trim();
                 if (message) {
                     sendMessage(message);
@@ -685,8 +1307,12 @@
 
             // 输入框回车发送
             $("#user_input").keypress(function(e) {
-                if (e.which == 13 && !e.shiftKey) {
-                    $("#send_message").click();
+                if (e.which === 13) {
+                    const message = $(this).val().trim();
+                    if (message) {
+                        sendMessage(message);
+                        $(this).val('');
+                    }
                     e.preventDefault();
                 }
             });
@@ -746,6 +1372,43 @@
 
             // 确保音频状态显示区域初始化
             updateAudioStatus('等待生成语音...');
+            
+            // 加载默认模型
+            setTimeout(() => {
+                const defaultModel = $("#model_list").val();
+                checkAndLoadModel(defaultModel);
+            }, 500);
+
+            // 初始化AudioContext（需要用户交互触发）
+            function initAudioContext() {
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log("AudioContext已创建");
+                    } catch (error) {
+                        console.error("创建AudioContext失败:", error);
+                        return false;
+                    }
+                }
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log("AudioContext已恢复");
+                    }).catch(error => {
+                        console.error("恢复AudioContext失败:", error);
+                    });
+                }
+                
+                return true;
+            }
+
+            // 口型同步设置
+            $('#lipsync_enabled, #mouth_intensity, #blink_frequency').on('change input', function() {
+                updateLipSyncSettings();
+            });
+            
+            // 初始化更新一次口型同步设置
+            updateLipSyncSettings();
         });
         
         // 加载可用模型列表
@@ -895,6 +1558,40 @@ git lfs pull</pre>`;
         
         // 绑定检查按钮事件
         document.getElementById('check_lfs').addEventListener('click', checkLFSPointers);
+
+        // 更新口型同步参数
+        function updateLipSyncSettings() {
+            const lipSyncEnabled = $('#lipsync_enabled').is(':checked');
+            const mouthIntensity = parseFloat($('#mouth_intensity').val());
+            const blinkFrequency = $('#blink_frequency').val();
+            
+            // 更新嘴巴开合强度
+            lipSyncParams.mouthOpenMax = mouthIntensity;
+            $('#mouth-value').text(mouthIntensity.toFixed(1));
+            
+            // 更新眨眼频率
+            switch (blinkFrequency) {
+                case 'high':
+                    lipSyncParams.blinkInterval = [2000, 4000];
+                    break;
+                case 'medium':
+                    lipSyncParams.blinkInterval = [3000, 7000];
+                    break;
+                case 'low':
+                    lipSyncParams.blinkInterval = [6000, 12000];
+                    break;
+                case 'none':
+                    lipSyncParams.blinkInterval = [1000000, 1000001]; // 实际上禁用眨眼
+                    break;
+            }
+            
+            // 处理启用/禁用状态
+            if (!lipSyncEnabled && lipSyncActive) {
+                stopLipSync();
+            } else if (lipSyncEnabled && currentAudio && !currentAudio.paused && !lipSyncActive) {
+                startLipSync();
+            }
+        }
     </script>
 </body>
 </html>
