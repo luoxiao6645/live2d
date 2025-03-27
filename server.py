@@ -125,6 +125,7 @@ def generate():
         data = request.get_json()
         session_id = data.get('session_id')
         user_input = data.get('prompt')
+        role_prompt = data.get('role_prompt', '一个AI助手，会认真回答您的问题。')  # 获取角色设定
         model_name = data.get('model_name', 'qwen2:0.5b')
         
         # 处理新会话
@@ -133,7 +134,12 @@ def generate():
         
         # 构建上下文
         context = session_manager.get_context(session_id)
-        full_prompt = f"对话历史：\n{context}\n\n用户：{user_input}\n助手："
+        
+        # 使用角色设定构建提示
+        full_prompt = f"{role_prompt}\n\n对话历史：\n{context}\n\n用户：{user_input}\n助手："
+        
+        # 记录完整提示用于调试
+        logger.info(f"完整提示: {full_prompt[:100]}...（已截断）")
         
         # 调用Ollama
         def generate_stream():

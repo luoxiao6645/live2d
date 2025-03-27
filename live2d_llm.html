@@ -1267,14 +1267,8 @@
             // 加载可用模型列表
             loadAvailableModels();
             
-            // 初始模型检查与加载
-            checkAndLoadModel($modelSelect.val());
-
-            // 更新模型按钮
-            $("#update_model").click(function() {
-                const modelName = $("#model_list").val();
-                checkAndLoadModel(modelName);
-            });
+            // 设置模型更新按钮
+            setupModelUpdateButton();
 
             // 音量控制
             $("#volume").on('input', function() {
@@ -1435,6 +1429,14 @@
                 // 如果没有模型，显示提示
                 if (models.length === 0) {
                     alert("没有找到可用的Live2D模型，请确保模型文件夹存在并包含有效模型");
+                } else {
+                    // 加载默认模型
+                    setTimeout(() => {
+                        const defaultModel = $modelSelect.val();
+                        if (defaultModel) {
+                            checkAndLoadModel(defaultModel);
+                        }
+                    }, 500);
                 }
             } catch (error) {
                 console.error('加载模型列表失败:', error);
@@ -1442,9 +1444,30 @@
             }
         }
         
+        // 设置模型更新按钮事件
+        function setupModelUpdateButton() {
+            $("#update_model").click(function() {
+                const selectedModel = $("#model_list").val();
+                if (selectedModel) {
+                    checkAndLoadModel(selectedModel);
+                } else {
+                    alert("请选择一个模型");
+                }
+            });
+        }
+        
         // 检查并加载模型
         async function checkAndLoadModel(modelName) {
             try {
+                // 停止当前可能正在进行的模型相关活动
+                if (currentModel) {
+                    stopLipSync();
+                    if (expressionTimeout) {
+                        clearTimeout(expressionTimeout);
+                        expressionTimeout = null;
+                    }
+                }
+                
                 const modelPath = modelPaths[modelName];
                 if (!modelPath) {
                     alert(`找不到模型 ${modelName} 的路径配置`);
@@ -1454,32 +1477,37 @@
                 console.log(`开始验证模型: ${modelName} (${modelPath})`);
                 
                 // 验证模型文件
-                const verifyResponse = await fetch(`/api/verify_model_files/${modelPath}`);
-                const verifyResult = await verifyResponse.json();
-                
-                console.log("模型验证结果:", verifyResult);
-                
-                if (!verifyResult.is_valid) {
-                    let missingFiles = verifyResult.missing_files.join("\n- ");
-                    alert(`模型 ${modelName} 缺少必要文件:\n- ${missingFiles}`);
-                    return;
+                try {
+                    const verifyResponse = await fetch(`/api/verify_model_files/${modelPath}`);
+                    const verifyResult = await verifyResponse.json();
+                    
+                    console.log("模型验证结果:", verifyResult);
+                    
+                    if (!verifyResult.is_valid) {
+                        let missingFiles = verifyResult.missing_files.join("\n- ");
+                        alert(`模型 ${modelName} 缺少必要文件:\n- ${missingFiles}`);
+                        return;
+                    }
+                    
+                    if (verifyResult.model_type === "cubism2" && modelTypes[modelName] === "cubism4") {
+                        alert(`警告: ${modelName} 是Cubism 2格式，但当前配置为使用Cubism 4引擎加载`);
+                    }
+                    
+                    if (verifyResult.model_type === "cubism4" && modelTypes[modelName] === "cubism2") {
+                        alert(`警告: ${modelName} 是Cubism 4格式，但当前配置为使用Cubism 2引擎加载`);
+                    }
+                    
+                } catch (verifyError) {
+                    console.warn(`验证模型文件失败: ${verifyError.message}, 尝试直接加载模型`);
                 }
                 
-                if (verifyResult.model_type === "cubism2" && modelTypes[modelName] === "cubism4") {
-                    alert(`警告: ${modelName} 是Cubism 2格式，但当前配置为使用Cubism 4引擎加载`);
-                }
-                
-                if (verifyResult.model_type === "cubism4" && modelTypes[modelName] === "cubism2") {
-                    alert(`警告: ${modelName} 是Cubism 4格式，但当前配置为使用Cubism 2引擎加载`);
-                }
-                
-                // 加载模型
-                console.log(`验证通过，开始加载模型: ${modelName}`);
-                loadModel(modelName);
+                // 加载模型 - 只在这一个地方调用loadModel
+                console.log(`开始加载模型: ${modelName}`);
+                await loadModel(modelName);
                 
             } catch (error) {
-                console.error('验证模型失败:', error);
-                alert(`验证模型 ${modelName} 时出错: ${error.message}`);
+                console.error('模型加载过程失败:', error);
+                alert(`加载模型 ${modelName} 时出错: ${error.message}`);
             }
         }
 
