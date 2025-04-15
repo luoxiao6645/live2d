@@ -12,6 +12,15 @@ from flask import Flask, jsonify, send_from_directory, request, Response, stream
 from flask_cors import CORS
 import edge_tts
 
+# 导入语音识别模块
+try:
+    from voice_recognition import register_voice_routes, get_recognizer
+    VOICE_RECOGNITION_AVAILABLE = True
+    logging.info("语音识别模块已加载")
+except ImportError as e:
+    VOICE_RECOGNITION_AVAILABLE = False
+    logging.warning(f"语音识别模块加载失败: {e}")
+
 # ======== 配置部分 ========
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,7 +38,7 @@ class SessionManager:
         self.sessions = {}
         self.lock = threading.Lock()
         self.cleanup_interval = 3600  # 清理间隔（秒）
-        
+
     def create_session(self, model_name):
         """创建新会话"""
         session_id = f"{datetime.now().timestamp()}-{model_name}"
@@ -40,7 +49,7 @@ class SessionManager:
                 "last_active": datetime.now()
             }
         return session_id
-    
+
     def add_message(self, session_id, role, content):
         """添加消息到历史记录"""
         with self.lock:
@@ -52,45 +61,45 @@ class SessionManager:
                 })
                 self._trim_history(session_id)
                 self.sessions[session_id]["last_active"] = datetime.now()
-    
+
     def get_context(self, session_id, max_tokens=2048):
         """构建上下文字符串"""
         with self.lock:
             if session_id not in self.sessions:
                 return ""
-            
+
             context = []
             token_count = 0
             for msg in reversed(self.sessions[session_id]["history"]):
                 text = f"{msg['role']}: {msg['content']}"
                 tokens = self._estimate_tokens(text)
-                
+
                 if token_count + tokens > max_tokens:
                     break
-                
+
                 context.insert(0, text)  # 保持时间顺序
                 token_count += tokens
-            
+
             return "\n".join(context)
-    
+
     def _trim_history(self, session_id):
         """维护历史记录长度"""
         history = self.sessions[session_id]["history"]
         while len(history) > MAX_HISTORY * 2:  # 保留最近N轮对话
             history.pop(0)
             history.pop(0)
-    
+
     def _estimate_tokens(self, text):
         """Token估算（中文1.5/字，英文0.8/词）"""
         chinese = len(re.findall(r'[\u4e00-\u9fa5]', text))
         english = len(re.findall(r'\b[a-zA-Z]+\b', text))
         return int(chinese * 1.5 + english * 0.8)
-    
+
     def cleanup_expired(self):
         """清理过期会话"""
         with self.lock:
             now = datetime.now()
-            expired = [sid for sid, data in self.sessions.items() 
+            expired = [sid for sid, data in self.sessions.items()
                       if (now - data["last_active"]).seconds > SESSION_TIMEOUT]
             for sid in expired:
                 del self.sessions[sid]
@@ -127,20 +136,20 @@ def generate():
         user_input = data.get('prompt')
         role_prompt = data.get('role_prompt', '一个AI助手，会认真回答您的问题。')  # 获取角色设定
         model_name = data.get('model_name', 'qwen2:0.5b')
-        
+
         # 处理新会话
         if not session_id or session_id not in session_manager.sessions:
             session_id = session_manager.create_session(model_name)
-        
+
         # 构建上下文
         context = session_manager.get_context(session_id)
-        
+
         # 使用角色设定构建提示
         full_prompt = f"{role_prompt}\n\n对话历史：\n{context}\n\n用户：{user_input}\n助手："
-        
+
         # 记录完整提示用于调试
         logger.info(f"完整提示: {full_prompt[:100]}...（已截断）")
-        
+
         # 调用Ollama
         def generate_stream():
             full_response = ""
@@ -157,7 +166,7 @@ def generate():
                 },
                 stream=True
             )
-            
+
             try:
                 for line in response.iter_lines(decode_unicode=True):
                     if line:
@@ -169,7 +178,7 @@ def generate():
                                 "chunk": chunk['response'],
                                 "done": False
                             }) + "\n"
-                        
+
                         if chunk.get('done'):
                             # 保存完整对话
                             session_manager.add_message(session_id, "user", user_input)
@@ -184,9 +193,9 @@ def generate():
                             }) + "\n"
             finally:
                 response.close()
-        
+
         return Response(stream_with_context(generate_stream()), content_type='application/json')
-    
+
     except Exception as e:
         logger.error(f"处理请求失败: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -231,7 +240,7 @@ def get_model_list():
                                 'path': os.path.join('models', folder, file).replace('\\', '/'),
                                 'type': 'cubism4'
                             })
-                            
+
                     # 检查 Cubism 2 模型 (.model.json)
                     model2_files = [f for f in os.listdir(folder_path) if f.endswith('.model.json')]
                     if model2_files:
@@ -241,7 +250,7 @@ def get_model_list():
                                 'path': os.path.join('models', folder, file).replace('\\', '/'),
                                 'type': 'cubism2'
                             })
-        
+
         logger.info(f"找到 {len(models)} 个模型")
         return jsonify(models)
     except Exception as e:
@@ -260,23 +269,23 @@ def serve_static(path):
 def check_model_compatibility():
     data = request.get_json()
     model_path = data.get('model_path')
-    
+
     # 检查文件存在性
     full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), model_path)
     if not os.path.exists(full_path):
         return jsonify({"error": "模型文件不存在", "path": full_path}), 404
-    
+
     # 检查文件扩展名
     file_ext = os.path.splitext(full_path)[1]
     model_type = ""
-    
+
     if file_ext == ".moc":
         model_type = "Cubism 2"
     elif file_ext == ".moc3":
         model_type = "Cubism 3/4"
     else:
         return jsonify({"error": "不支持的模型文件格式", "extension": file_ext}), 400
-    
+
     # 返回文件信息
     file_size = os.path.getsize(full_path)
     return jsonify({
@@ -293,23 +302,23 @@ def get_model_info(model_path):
         full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), model_path)
         if not os.path.exists(full_path):
             return jsonify({"error": "文件不存在"}), 404
-            
+
         # 读取模型配置文件
         if full_path.endswith('.model.json') or full_path.endswith('.model3.json'):
             with open(full_path, 'r', encoding='utf-8') as f:
                 model_data = json.load(f)
-                
+
             # 检查关联文件是否存在
             model_dir = os.path.dirname(full_path)
             missing_files = []
-            
+
             # 检查 moc 文件
             moc_file = None
             if 'model' in model_data:
                 moc_file = os.path.join(model_dir, model_data['model'])
                 if not os.path.exists(moc_file):
                     missing_files.append(model_data['model'])
-            
+
             # 返回模型信息
             return jsonify({
                 "model_path": full_path,
@@ -319,7 +328,7 @@ def get_model_info(model_path):
             })
         else:
             return jsonify({"error": "不支持的文件格式"}), 400
-            
+
     except Exception as e:
         logger.error(f"获取模型信息失败: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -328,7 +337,7 @@ def get_model_info(model_path):
 def check_all_models():
     model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
     model_status = []
-    
+
     try:
         if os.path.isdir(model_dir):
             for folder in os.listdir(model_dir):
@@ -341,12 +350,12 @@ def check_all_models():
                             try:
                                 with open(config_path, 'r', encoding='utf-8') as f:
                                     config_data = json.load(f)
-                                
+
                                 # 检查 MOC 文件
                                 moc_filename = config_data.get('model', '')
                                 moc_path = os.path.join(folder_path, moc_filename)
                                 moc_exists = os.path.exists(moc_path)
-                                
+
                                 model_status.append({
                                     'folder': folder,
                                     'config_file': file,
@@ -363,7 +372,7 @@ def check_all_models():
                                     'error': str(e),
                                     'status': '检查失败'
                                 })
-        
+
         return jsonify(model_status)
     except Exception as e:
         logger.error(f"检查模型文件失败: {str(e)}")
@@ -376,7 +385,7 @@ def view_model_file(model_path):
         full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), model_path)
         if not os.path.exists(full_path):
             return jsonify({"error": "文件不存在"}), 404
-        
+
         # 读取文件前100个字节（二进制）
         file_stats = os.stat(full_path)
         file_info = {
@@ -384,19 +393,19 @@ def view_model_file(model_path):
             "size": file_stats.st_size,
             "modified": datetime.fromtimestamp(file_stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
         }
-        
+
         # 读取文件头
         with open(full_path, 'rb') as f:
             header = f.read(100)
             # 转换为十六进制显示
             file_info["header_hex"] = header.hex(' ')
-            
+
             # 判断文件类型
             if full_path.endswith('.moc'):
                 file_info["expected_header"] = "moc file for Cubism 2"
             elif full_path.endswith('.moc3'):
                 file_info["expected_header"] = "moc3 file for Cubism 3/4"
-        
+
         return jsonify(file_info)
     except Exception as e:
         logger.error(f"查看模型文件失败: {str(e)}")
@@ -409,11 +418,11 @@ def log_model_error():
         model_path = data.get('model_path', '未知')
         error_message = data.get('error', '未知错误')
         stack_trace = data.get('stack', '')
-        
+
         logger.error(f"模型加载失败 - 路径: {model_path}")
         logger.error(f"错误信息: {error_message}")
         logger.error(f"堆栈跟踪: {stack_trace}")
-        
+
         return jsonify({"status": "错误已记录"})
     except Exception as e:
         logger.error(f"记录模型错误失败: {str(e)}")
@@ -425,30 +434,30 @@ def convert_model():
         data = request.get_json()
         source_path = data.get('source')
         target_type = data.get('target_type', 'cubism4')
-        
+
         # 构建完整路径
         full_source_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), source_path)
         if not os.path.exists(full_source_path):
             return jsonify({"error": "源模型文件不存在"}), 404
-            
+
         # 从路径获取文件夹和文件名
         model_dir = os.path.dirname(full_source_path)
         model_name = os.path.basename(full_source_path)
-        
+
         # 获取源模型类型
         source_type = "cubism2" if model_name.endswith('.model.json') else "cubism4"
-        
+
         # 如果源类型和目标类型相同，不需要转换
         if source_type == target_type:
             return jsonify({
                 "status": "无需转换",
                 "message": "源模型已经是目标格式"
             })
-            
+
         # 注意：自动转换需要额外的库或工具，这里仅提供一个示例
         # 实际转换逻辑需要根据具体工具和环境实现
         # 这里只返回一个指导信息
-        
+
         return jsonify({
             "status": "需要手动转换",
             "source_type": source_type,
@@ -461,7 +470,7 @@ def convert_model():
                 "model_name": model_name
             }
         })
-            
+
     except Exception as e:
         logger.error(f"模型转换检查失败: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -471,10 +480,10 @@ def get_model_directory_structure():
     try:
         model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
         structure = {}
-        
+
         if not os.path.isdir(model_dir):
             return jsonify({"error": "模型目录不存在"}), 404
-            
+
         for folder in os.listdir(model_dir):
             folder_path = os.path.join(model_dir, folder)
             if os.path.isdir(folder_path):
@@ -493,7 +502,7 @@ def get_model_directory_structure():
                             'size': file_size,
                             'type': file_type
                         })
-        
+
         return jsonify(structure)
     except Exception as e:
         logger.error(f"获取模型目录结构失败: {str(e)}")
@@ -505,22 +514,22 @@ def verify_model_files(model_config_path):
         # 构建配置文件完整路径
         app_dir = os.path.dirname(os.path.abspath(__file__))
         full_config_path = os.path.join(app_dir, model_config_path)
-        
+
         if not os.path.exists(full_config_path):
             return jsonify({"error": "模型配置文件不存在", "path": full_config_path}), 404
-            
+
         model_dir = os.path.dirname(full_config_path)
         model_type = "cubism2" if full_config_path.endswith('.model.json') else "cubism4"
-        
+
         # 读取配置文件
         with open(full_config_path, 'r', encoding='utf-8') as f:
             model_config = json.load(f)
-            
+
         # 验证必要文件存在
         missing_files = []
         file_sizes = {}
         lfs_pointers = []
-        
+
         # 检查MOC文件
         if 'model' in model_config:
             moc_file = os.path.join(model_dir, model_config['model'])
@@ -529,7 +538,7 @@ def verify_model_files(model_config_path):
             else:
                 file_size = os.path.getsize(moc_file)
                 file_sizes[model_config['model']] = file_size
-                
+
                 # 检查是否是LFS指针
                 if file_size < 1000:  # 小于1KB可能是LFS指针
                     try:
@@ -539,7 +548,7 @@ def verify_model_files(model_config_path):
                                 lfs_pointers.append(model_config['model'])
                     except:
                         pass  # 二进制文件无法读取为文本
-        
+
         # 检查纹理文件
         if 'textures' in model_config:
             for texture in model_config['textures']:
@@ -548,7 +557,7 @@ def verify_model_files(model_config_path):
                     missing_files.append(texture)
                 else:
                     file_sizes[texture] = os.path.getsize(texture_file)
-        
+
         # 检查物理文件
         if 'physics' in model_config:
             physics_file = os.path.join(model_dir, model_config['physics'])
@@ -556,7 +565,7 @@ def verify_model_files(model_config_path):
                 missing_files.append(model_config['physics'])
             else:
                 file_sizes[model_config['physics']] = os.path.getsize(physics_file)
-        
+
         # 检查动作文件
         if 'motions' in model_config:
             for motion_group in model_config['motions']:
@@ -567,7 +576,7 @@ def verify_model_files(model_config_path):
                             missing_files.append(motion['file'])
                         else:
                             file_sizes[motion['file']] = os.path.getsize(motion_file)
-        
+
         # 检查表情文件
         if 'expressions' in model_config:
             for expression in model_config['expressions']:
@@ -577,7 +586,7 @@ def verify_model_files(model_config_path):
                         missing_files.append(expression['file'])
                     else:
                         file_sizes[expression['file']] = os.path.getsize(expression_file)
-        
+
         # 返回验证结果
         return jsonify({
             "model_path": full_config_path,
@@ -589,7 +598,7 @@ def verify_model_files(model_config_path):
             "config_data": model_config,
             "is_valid": len(missing_files) == 0 and len(lfs_pointers) == 0
         })
-        
+
     except Exception as e:
         logger.error(f"验证模型文件失败: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -598,14 +607,14 @@ def verify_model_files(model_config_path):
 def check_lfs_pointers():
     model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
     lfs_pointers = []
-    
+
     try:
         for root, dirs, files in os.walk(model_dir):
             for file in files:
                 if file.endswith('.moc3') or file.endswith('.moc'):
                     file_path = os.path.join(root, file)
                     file_size = os.path.getsize(file_path)
-                    
+
                     # 检查文件是否太小（可能是LFS指针）
                     if file_size < 1000:  # 通常LFS指针文件<1KB
                         try:
@@ -620,7 +629,7 @@ def check_lfs_pointers():
                                             if size_match:
                                                 expected_size = int(size_match.group(1))
                                                 break
-                                    
+
                                     rel_path = os.path.relpath(file_path, os.path.dirname(os.path.abspath(__file__)))
                                     lfs_pointers.append({
                                         'path': rel_path,
@@ -630,7 +639,7 @@ def check_lfs_pointers():
                                     })
                         except:
                             pass  # 二进制文件可能无法读取为文本
-        
+
         # 获取Git LFS状态
         git_lfs_installed = False
         try:
@@ -639,7 +648,7 @@ def check_lfs_pointers():
             git_lfs_installed = result.returncode == 0
         except:
             pass
-            
+
         return jsonify({
             'lfs_pointers_found': len(lfs_pointers) > 0,
             'git_lfs_installed': git_lfs_installed,
@@ -648,6 +657,11 @@ def check_lfs_pointers():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# 注册语音识别路由
+if VOICE_RECOGNITION_AVAILABLE:
+    register_voice_routes(app)
+    logging.info("已注册语音识别路由")
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

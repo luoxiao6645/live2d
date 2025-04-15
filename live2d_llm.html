@@ -9,11 +9,12 @@
     <script src="./js/pixi.min.js"></script>
     <script src="./js/cubism4.min.js"></script>
     <script src="./js/jquery-3.1.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        body, html { 
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
             overflow: hidden;
             font-family: Arial, sans-serif;
         }
@@ -65,9 +66,9 @@
             margin: 5px 0;
             display: block;
         }
-        #control input[type="text"], 
-        #control input[type="url"], 
-        #control input[type="search"], 
+        #control input[type="text"],
+        #control input[type="url"],
+        #control input[type="search"],
         #control select {
             width: 100%;
             padding: 8px;
@@ -185,7 +186,7 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
         }
-        
+
         .dialog-content {
             background-color: white;
             margin: 10% auto;
@@ -195,81 +196,81 @@
             max-height: 70vh;
             overflow-y: auto;
         }
-        
+
         .close-btn {
             float: right;
             cursor: pointer;
             font-weight: bold;
             font-size: 1.2em;
         }
-        
+
         .alert {
             padding: 10px;
             margin: 10px 0;
             border-radius: 4px;
         }
-        
+
         .alert-danger {
             background-color: #f8d7da;
             border: 1px solid #f5c6cb;
             color: #721c24;
         }
-        
+
         .alert-success {
             background-color: #d4edda;
             border: 1px solid #c3e6cb;
             color: #155724;
         }
-        
+
         pre {
             background-color: #f5f5f5;
             padding: 10px;
             border-radius: 4px;
             overflow-x: auto;
         }
-        
+
         .secondary-button {
             background-color: #6c757d;
             color: white;
         }
-        
+
         .dialog-actions {
             margin-top: 15px;
             text-align: right;
         }
-        
+
         /* 新增：口型同步控制样式 */
         .lipsync-settings {
             margin-top: 5px;
         }
-        
+
         .control-group {
             margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .control-group label {
             flex: 0 0 120px;
         }
-        
+
         .control-group input[type="range"] {
             flex: 1;
         }
-        
+
         .control-group input[type="checkbox"] {
             width: 20px;
             height: 20px;
             margin: 0;
             display: inline-block;
         }
-        
+
         #mouth-value {
             min-width: 30px;
             text-align: right;
         }
-        
+
         /* 美化范围滑块 */
         input[type="range"] {
             height: 8px;
@@ -278,7 +279,7 @@
             outline: none;
             -webkit-appearance: none;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 18px;
@@ -287,7 +288,7 @@
             background: #4CAF50;
             cursor: pointer;
         }
-        
+
         input[type="range"]::-moz-range-thumb {
             width: 18px;
             height: 18px;
@@ -295,6 +296,91 @@
             background: #4CAF50;
             cursor: pointer;
             border: none;
+        }
+
+        /* 语音识别相关样式 */
+        #voice_input {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #voice_input:hover {
+            background-color: #45a049;
+        }
+
+        #voice_input.recording {
+            background-color: #f44336;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .voice-recognition-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            margin-bottom: 5px;
+        }
+
+        .voice-wave span {
+            display: inline-block;
+            width: 3px;
+            height: 5px;
+            margin: 0 2px;
+            background-color: #4CAF50;
+            border-radius: 1px;
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        .voice-wave span:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .voice-wave span:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .voice-wave span:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .voice-wave span:nth-child(5) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes wave {
+            0%, 100% { height: 5px; }
+            50% { height: 20px; }
+        }
+
+        .voice-text {
+            font-size: 14px;
+            color: #666;
         }
     </style>
 </head>
@@ -322,15 +408,49 @@
 
         <div class="section">
             <div class="section-title">语音设置</div>
-            <div class="tts-settings">
-                <select id="voice_selection">
-                    <option value="21m00Tcm4TlvDq8ikWAM">chinese (中文)</option>
-                    <option value="AZnzlk1XvdvUeBnXmlld">Endlish (英语)</option>
-                </select>
-                <div class="volume-control">
-                    <label for="volume">音量:</label>
-                    <input type="range" id="volume" min="0" max="1" step="0.1" value="0.7">
-                    <span id="volume-value">70%</span>
+            <div class="tabs">
+                <div class="tab active" data-tab="tts">语音合成</div>
+                <div class="tab" data-tab="stt">语音识别</div>
+            </div>
+
+            <div class="tab-content active" id="tts-tab">
+                <div class="tts-settings">
+                    <select id="voice_selection">
+                        <option value="21m00Tcm4TlvDq8ikWAM">chinese (中文)</option>
+                        <option value="AZnzlk1XvdvUeBnXmlld">Endlish (英语)</option>
+                    </select>
+                    <div class="volume-control">
+                        <label for="volume">音量:</label>
+                        <input type="range" id="volume" min="0" max="1" step="0.1" value="0.7">
+                        <span id="volume-value">70%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="stt-tab">
+                <div class="voice-recognition-settings">
+                    <div class="control-group">
+                        <label for="voice_recognition_enabled">启用语音识别:</label>
+                        <input type="checkbox" id="voice_recognition_enabled" checked>
+                    </div>
+                    <div class="control-group">
+                        <label for="voice_recognition_mode">识别模式:</label>
+                        <select id="voice_recognition_mode">
+                            <option value="server">服务器模式 (高精度)</option>
+                            <option value="browser">浏览器模式 (低延迟)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="voice_recognition_language">语言:</label>
+                        <select id="voice_recognition_language">
+                            <option value="zh">中文</option>
+                            <option value="en">英语</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="auto_send_voice">自动发送:</label>
+                        <input type="checkbox" id="auto_send_voice" checked>
+                    </div>
                 </div>
             </div>
         </div>
@@ -368,10 +488,10 @@
                     <option value="qwen2:0.5b">Qwen2 0.5B</option>
                     <option value="llama2:7b">LLaMA2 7B</option>
                 </select>
-                
+
                 <label for="temperature">温度:</label>
                 <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
-                
+
                 <label for="top_p">Top P:</label>
                 <input type="range" id="top_p" min="0" max="1" step="0.1" value="0.9">
             </div>
@@ -389,7 +509,14 @@
                 <textarea id="text_talk" readonly placeholder="对话历史将显示在这里..."></textarea>
                 <div class="chat-input">
                     <input type="text" id="user_input" placeholder="输入您的问题...">
+                    <button id="voice_input" title="语音输入"><i class="fa fa-microphone"></i></button>
                     <button id="send_message">发送</button>
+                </div>
+                <div class="voice-recognition-status" id="voice_status" style="display: none;">
+                    <div class="voice-wave">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="voice-text">正在聆听...</div>
                 </div>
                 <div class="audio-controls">
                     <button id="play_audio" disabled>播放语音</button>
@@ -401,12 +528,12 @@
 
         <div class="section">
             <div class="section-title">背景设置</div>
-            
+
             <div class="tabs">
                 <div class="tab active" data-tab="color">纯色背景</div>
                 <div class="tab" data-tab="image">图片背景</div>
             </div>
-            
+
             <div class="tab-content active" id="color-tab">
                 <div class="bg-option">
                     <label for="bg_color">背景颜色:</label>
@@ -414,7 +541,7 @@
                 </div>
                 <button id="update_bg_color">更新背景颜色</button>
             </div>
-            
+
             <div class="tab-content" id="image-tab">
                 <select id="bg_image_preset">
                     <option value="">- 选择预设背景 -</option>
@@ -423,7 +550,7 @@
                     <option value="./backgrounds/forest.jpg">森林</option>
                     <option value="./backgrounds/space.jpg">太空</option>
                 </select>
-                
+
                 <div class="bg-input-group">
                     <label for="bg_image_url">自定义背景图片URL:</label>
                     <input type="url" id="bg_image_url" placeholder="输入图片URL...">
@@ -478,37 +605,37 @@
 
         // 对应的表情和动作配置
         const expressionActions = {
-            '开心': { 
+            '开心': {
                 parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [1, 0.8, 0.8, 0.5, 0.5],
                 duration: 8000,  // 表情持续时间（毫秒）
                 priority: 2      // 表情优先级
             },
-            '悲伤': { 
+            '悲伤': {
                 parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [-0.8, 0.5, 0.5, -0.8, -0.8],
                 duration: 10000,
                 priority: 3
             },
-            '惊讶': { 
+            '惊讶': {
                 parameterIds: ['ParamMouthOpenY', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [0.5, 1.2, 1.2, 1, 1],
                 duration: 7000,
                 priority: 3
             },
-            '生气': { 
+            '生气': {
                 parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [-0.5, 0.8, 0.8, -1, -1],
                 duration: 10000,
                 priority: 3
             },
-            '害羞': { 
+            '害羞': {
                 parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [0.2, 0.7, 0.7, 0.2, 0.2],
                 duration: 8000,
                 priority: 2
             },
-            '疑惑': { 
+            '疑惑': {
                 parameterIds: ['ParamMouthForm', 'ParamEyeLOpen', 'ParamEyeROpen', 'ParamBrowLY', 'ParamBrowRY'],
                 parameterValues: [0, 0.8, 0.8, -0.5, 0.5],
                 duration: 6000,
@@ -583,10 +710,10 @@
             if (lastAudioUrl) {
                 currentAudio = new Audio(lastAudioUrl);
                 currentAudio.volume = parseFloat(document.getElementById('volume').value);
-                
+
                 // 准备音频分析
                 setupAudioAnalysis(currentAudio);
-                
+
                 currentAudio.onplay = () => {
                     enableAudioControls(true);
                     document.getElementById('play_audio').disabled = true;
@@ -595,7 +722,7 @@
                     // 开始口型同步
                     startLipSync();
                 };
-                
+
                 currentAudio.onended = () => {
                     enableAudioControls(true);
                     document.getElementById('stop_audio').disabled = true;
@@ -609,7 +736,7 @@
                     enableAudioControls(false);
                     stopLipSync();
                 };
-                
+
                 currentAudio.play().catch(error => {
                     console.error('播放音频失败:', error);
                     updateAudioStatus('播放失败: ' + error.message);
@@ -643,7 +770,7 @@
                     }
                     audioAnalyser = null;
                 }
-                
+
                 // 确保AudioContext已初始化
                 if (!audioContext) {
                     try {
@@ -654,33 +781,33 @@
                         return;
                     }
                 }
-                
+
                 if (audioContext.state === 'suspended') {
                     audioContext.resume().catch(err => {
                         console.error("恢复AudioContext失败:", err);
                     });
                 }
-                
+
                 if (!audioContext || audioContext.state === 'closed') {
                     console.warn("AudioContext不可用，无法设置音频分析");
                     return;
                 }
-                
+
                 // 创建媒体元素源和分析器
                 const source = audioContext.createMediaElementSource(audio);
                 audioAnalyser = audioContext.createAnalyser();
                 audioAnalyser.fftSize = 256;
-                
+
                 // 连接音频节点：源 -> 分析器 -> 输出
                 source.connect(audioAnalyser);
                 audioAnalyser.connect(audioContext.destination);
-                
+
                 // 创建数据数组接收频域数据
                 const bufferLength = audioAnalyser.frequencyBinCount;
                 audioDataArray = new Uint8Array(bufferLength);
-                
+
                 console.log("音频分析器已设置完成");
-                
+
             } catch (error) {
                 console.error("设置音频分析失败:", error);
                 if (error.name === "InvalidAccessError") {
@@ -700,53 +827,53 @@
         // 启动口型同步
         function startLipSync() {
             if (lipSyncActive || !currentModel) return;
-            
+
             // 检查是否禁用了口型同步
             if (!$('#lipsync_enabled').is(':checked')) {
                 return;
             }
-            
+
             // 确保有效的音频分析器
             if (!audioAnalyser || !audioDataArray) {
                 console.warn("音频分析器未准备好，无法启动口型同步");
                 return;
             }
-            
+
             lipSyncActive = true;
             lastBlinkTime = Date.now();
-            
+
             console.log("开始口型同步");
-            
+
             // 开始口型同步定时器
             lipSyncInterval = setInterval(() => {
                 if (!currentAudio || currentAudio.paused) {
                     resetMouthParameters();
                     return;
                 }
-                
+
                 try {
                     // 获取音频数据
                     audioAnalyser.getByteFrequencyData(audioDataArray);
-                    
+
                     // 计算平均音量 (简单方法)
                     let sum = 0;
                     for (let i = 0; i < audioDataArray.length; i++) {
                         sum += audioDataArray[i];
                     }
                     const averageVolume = sum / audioDataArray.length / 255; // 归一化到0-1
-                    
+
                     // 根据音量设置嘴型参数
                     if (averageVolume > lipSyncParams.volumeThreshold) {
-                        const mouthOpen = lipSyncParams.mouthOpenMin + 
+                        const mouthOpen = lipSyncParams.mouthOpenMin +
                                         (averageVolume * (lipSyncParams.mouthOpenMax - lipSyncParams.mouthOpenMin));
-                                        
+
                         // 设置嘴巴开合度
                         setMouthParameters(mouthOpen);
                     } else {
                         // 音量低于阈值，关闭嘴巴
                         resetMouthParameters();
                     }
-                    
+
                     // 随机眨眼
                     const now = Date.now();
                     if (now - lastBlinkTime > getRandomInt(lipSyncParams.blinkInterval[0], lipSyncParams.blinkInterval[1])) {
@@ -756,9 +883,9 @@
                 } catch (error) {
                     console.error("口型同步更新失败:", error);
                 }
-                
+
             }, lipSyncParams.audioAnalysisInterval);
-            
+
             console.log("已启动口型同步");
         }
 
@@ -768,7 +895,7 @@
                 clearInterval(lipSyncInterval);
                 lipSyncInterval = null;
             }
-            
+
             // 重置口型参数
             resetMouthParameters();
             lipSyncActive = false;
@@ -778,18 +905,18 @@
         // 设置嘴型参数
         function setMouthParameters(openValue) {
             if (!currentModel) return;
-            
+
             try {
                 // 设置嘴巴开合度
                 currentModel.internalModel.coreModel.setParameterValueById(
-                    lipSyncParams.mouthOpenY, 
+                    lipSyncParams.mouthOpenY,
                     Math.min(Math.max(openValue, 0), lipSyncParams.mouthOpenMax)
                 );
-                
+
                 // 微调嘴型形态，让动画更自然
                 const formValue = openValue > 0.5 ? -0.2 : 0.1; // 嘴巴大开时收紧嘴角
                 currentModel.internalModel.coreModel.setParameterValueById(
-                    lipSyncParams.mouthForm, 
+                    lipSyncParams.mouthForm,
                     formValue
                 );
             } catch (error) {
@@ -800,7 +927,7 @@
         // 重置嘴型参数
         function resetMouthParameters() {
             if (!currentModel) return;
-            
+
             try {
                 // 重置嘴巴开合和形态
                 currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.mouthOpenY, 0);
@@ -813,12 +940,12 @@
         // 眨眼动画
         function blinkEyes() {
             if (!currentModel) return;
-            
+
             try {
                 // 快速闭眼
                 currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeL, 0);
                 currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeR, 0);
-                
+
                 // 恢复睁眼
                 setTimeout(() => {
                     currentModel.internalModel.coreModel.setParameterValueById(lipSyncParams.eyeL, 1);
@@ -857,24 +984,24 @@
                     console.log("发现旧模型，执行清理流程");
                     // 停止口型同步
                     stopLipSync();
-                    
+
                     // 清理表情计时器
                     if (expressionTimeout) {
                         clearTimeout(expressionTimeout);
                         expressionTimeout = null;
                     }
-                    
+
                     // 移除旧模型
                     console.log("从舞台移除旧模型");
                     app.stage.removeChild(currentModel);
-                    
+
                     // 完全销毁模型实例
                     console.log("销毁旧模型资源");
                     if (typeof currentModel.destroy === 'function') {
                         currentModel.destroy({children: true, texture: true, baseTexture: true});
                     }
                     currentModel = null;
-                    
+
                     // 强制垃圾回收提示
                     setTimeout(() => {
                         // 可选：手动执行一次浏览器垃圾回收
@@ -882,7 +1009,7 @@
                         console.log("旧模型清理完成");
                     }, 100);
                 }
-                
+
                 // 初始化PIXI应用或清理舞台
                 if (!app) {
                     console.log("创建PIXI应用");
@@ -905,36 +1032,36 @@
                         }
                     }
                 }
-                
+
                 // 确保舞台是空的
                 console.log("当前舞台子元素数量:", app.stage.children.length);
-                
+
                 // 获取模型路径
                 const modelPath = modelPaths[modelName];
                 console.log("准备加载新模型:", modelPath);
-                
+
                 // 检查模型类型
                 let modelType = modelTypes[modelName] || 'cubism4';
                 const isModelCubism2 = modelPath.endsWith('.model.json');
                 const isModelCubism4 = modelPath.endsWith('.model3.json');
-                
+
                 // 根据文件扩展名确定实际类型
                 if (isModelCubism2) modelType = 'cubism2';
                 if (isModelCubism4) modelType = 'cubism4';
-                
+
                 console.log("模型类型:", modelType);
-                
+
                 // 根据类型选择加载方法
                 let model;
                 if (modelType === 'cubism2') {
                     // 使用Cubism 2引擎加载
                     console.log("使用Cubism 2引擎加载模型");
-                    
+
                     // 检查是否加载了Cubism 2引擎
                     if (typeof Live2D === 'undefined') {
                         throw new Error("Cubism 2引擎未加载，无法加载Cubism 2模型");
                     }
-                    
+
                     // 这里实现Cubism 2模型加载逻辑
                     // 注意：这需要完整的Cubism 2加载实现
                     alert("Cubism 2模型加载尚未完全实现，请使用Cubism 4模型");
@@ -944,19 +1071,19 @@
                     console.log("使用Cubism 4引擎加载模型");
                     model = await PIXI.live2d.Live2DModel.from(modelPath);
                 }
-                
+
                 console.log("模型加载完成，添加到舞台");
                 app.stage.addChild(model);
-                
+
                 // 调整模型大小和位置
                 const scale = Math.min(innerWidth / model.width, innerHeight / model.height);
                 model.scale.set(scale);
                 model.y = innerHeight * 0.1;
                 model.x = innerWidth / 2;
-                
+
                 // 设置当前模型引用
                 currentModel = model;
-                
+
                 // 添加交互能力
                 model.on('hit', (hitAreas) => {
                     console.log('Touched area:', hitAreas);
@@ -966,20 +1093,20 @@
                         playModelMotion('点头');
                     }
                 });
-                
+
                 // 加载默认表情
                 setModelExpression('开心');
-                
+
                 // 记录加载成功
                 console.log("模型加载成功:", modelName);
                 return model;
             } catch (error) {
                 console.error("加载模型失败:", error);
-                
+
                 // 记录详细错误信息
                 if (error.message === "Invalid moc data") {
                     console.error("可能原因：模型格式与引擎不兼容，或模型文件损坏");
-                    
+
                     // 发送错误信息到服务器进行记录
                     try {
                         await fetch('/api/log_model_error', {
@@ -996,7 +1123,7 @@
                     } catch (logError) {
                         console.error("无法记录错误:", logError);
                     }
-                    
+
                     // 提示用户
                     alert(`加载模型失败：模型格式可能与引擎不兼容\n请检查 ${modelName} 是否为Cubism 4格式的模型`);
                 } else {
@@ -1008,14 +1135,14 @@
         // 新增：设置模型表情
         async function setModelExpression(expressionName) {
             if (!currentModel) return;
-            
+
             try {
                 const config = expressionActions[expressionName];
                 if (!config) {
                     console.warn(`未找到表情配置: ${expressionName}`);
                     return;
                 }
-                
+
                 // 检查是否应该覆盖当前表情
                 if (currentExpression) {
                     const currentConfig = expressionActions[currentExpression];
@@ -1024,21 +1151,21 @@
                         return;
                     }
                 }
-                
+
                 // 清除之前的表情timeout
                 if (expressionTimeout) {
                     clearTimeout(expressionTimeout);
                     expressionTimeout = null;
                 }
-                
+
                 console.log(`设置表情: ${expressionName}`);
-                
+
                 // 使用参数控制设置表情
                 if (config.parameterIds && config.parameterValues) {
                     for (let i = 0; i < config.parameterIds.length; i++) {
                         const paramId = config.parameterIds[i];
                         const paramValue = config.parameterValues[i];
-                        
+
                         try {
                             // 使用补间动画平滑过渡
                             const currentValue = currentModel.internalModel.coreModel.getParameterValueById(paramId);
@@ -1054,12 +1181,12 @@
                         }
                     }
                 }
-                
+
                 currentExpression = expressionName;
-                
+
                 // 设置表情持续时间
                 const duration = config.duration || 5000;
-                
+
                 // 定时恢复默认表情
                 expressionTimeout = setTimeout(() => {
                     try {
@@ -1071,77 +1198,77 @@
                                 animateParameter(paramId, currentValue, 0, 500); // 500ms平滑过渡到默认值
                             }
                         }
-                        
+
                         console.log(`表情 ${expressionName} 已恢复默认状态`);
                         currentExpression = null;
                     } catch (e) {
                         console.warn("恢复默认表情失败:", e);
                     }
-                    
+
                     expressionTimeout = null;
                 }, duration);
-                
+
             } catch (error) {
                 console.error(`设置表情失败 ${expressionName}:`, error);
             }
         }
-        
+
         // 参数动画函数：平滑过渡
         function animateParameter(paramId, startValue, targetValue, duration) {
             if (!currentModel) return;
-            
+
             const startTime = Date.now();
             const animate = () => {
                 if (!currentModel) return;
-                
+
                 const now = Date.now();
                 const elapsed = now - startTime;
-                
+
                 if (elapsed >= duration) {
                     // 动画结束，设置最终值
                     currentModel.internalModel.coreModel.setParameterValueById(paramId, targetValue);
                     return;
                 }
-                
+
                 // 计算当前进度（使用缓动函数）
                 const progress = elapsed / duration;
                 const easedProgress = 0.5 - 0.5 * Math.cos(Math.PI * progress);
-                
+
                 // 计算当前值
                 const currentValue = startValue + (targetValue - startValue) * easedProgress;
-                
+
                 // 设置参数值
                 currentModel.internalModel.coreModel.setParameterValueById(paramId, currentValue);
-                
+
                 // 继续动画
                 requestAnimationFrame(animate);
             };
-            
+
             // 启动动画
             animate();
         }
-        
+
         // 新增：播放模型动作
         async function playModelMotion(motionType) {
             if (!currentModel) return;
-            
+
             try {
                 const motions = motionGroups[motionType];
                 if (!motions || motions.length === 0) {
                     console.warn(`未找到动作组: ${motionType}`);
                     return;
                 }
-                
+
                 // 随机选择一个动作
                 const randomMotion = motions[Math.floor(Math.random() * motions.length)];
                 console.log(`播放动作: ${motionType} - ${randomMotion}`);
-                
+
                 // 尝试播放动作
                 try {
                     await currentModel.motion(motionType, randomMotion);
                 } catch (motionError) {
                     console.warn(`无法使用motion方法播放动作: ${motionError.message}`);
-                    
+
                     // 尝试通过组名播放
                     try {
                         await currentModel.motion(motionType);
@@ -1153,18 +1280,18 @@
                 console.error(`播放动作失败 ${motionType}:`, error);
             }
         }
-        
+
         // 新增：分析文本情感并触发表情和动作
         function analyzeEmotionAndPlayAction(text) {
             if (!text || !currentModel) return;
-            
+
             // 将文本转为小写并去除标点
             const normalizedText = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-            
+
             // 检测情感关键词
             let detectedEmotion = null;
             let maxMatches = 0;
-            
+
             for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
                 let matches = 0;
                 for (const keyword of keywords) {
@@ -1172,18 +1299,18 @@
                         matches++;
                     }
                 }
-                
+
                 if (matches > maxMatches) {
                     maxMatches = matches;
                     detectedEmotion = emotion;
                 }
             }
-            
+
             // 如果检测到情感，设置表情
             if (detectedEmotion && maxMatches > 0) {
                 console.log(`检测到情感: ${detectedEmotion} (匹配度: ${maxMatches})`);
                 setModelExpression(detectedEmotion);
-                
+
                 // 根据情感选择合适的动作
                 if (detectedEmotion === '开心') {
                     playModelMotion('打招呼');
@@ -1212,7 +1339,7 @@
             try {
                 // 修复角色设定问题，确保角色设定与API正确对接
                 console.log("发送请求，角色设定:", rolePrompt);
-                
+
                 const response = await fetch('/generate', {
                     method: 'POST',
                     headers: {
@@ -1236,7 +1363,7 @@
                 const reader = response.body.getReader();
                 let fullResponse = '';
                 const textArea = document.getElementById('text_talk');
-                
+
                 // 设置思考表情和动作
                 setModelExpression('疑惑');
                 playModelMotion('思考');
@@ -1257,7 +1384,7 @@
                                 const currentText = textArea.value;
                                 const assistantPrefix = '助手: ';
                                 const assistantStartPos = currentText.lastIndexOf(assistantPrefix);
-                                
+
                                 if (assistantStartPos !== -1) {
                                     textArea.value = currentText.substring(0, assistantStartPos + assistantPrefix.length) + fullResponse;
                                     textArea.scrollTop = textArea.scrollHeight;
@@ -1267,10 +1394,10 @@
                             if (data.done) {
                                 lastAudioUrl = data.audio_url;
                                 enableAudioControls(!!lastAudioUrl);
-                                
+
                                 // 分析响应文本，设置表情和动作
                                 analyzeEmotionAndPlayAction(fullResponse);
-                                
+
                                 if (lastAudioUrl) {
                                     updateAudioStatus('语音生成完成');
                                     playAudio(); // 自动播放
@@ -1290,9 +1417,283 @@
                 console.error('发送消息失败:', error);
                 $("#text_talk").val($("#text_talk").val() + '发送失败: ' + error.message);
                 $("#send_message").prop('disabled', false);
-                
+
                 // 设置悲伤表情
                 setModelExpression('悲伤');
+            }
+        }
+
+        // 语音识别相关变量和函数
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognition = null; // Web Speech API
+
+        // 初始化浏览器语音识别
+        function initBrowserSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                console.warn('浏览器不支持语音识别 API');
+                return false;
+            }
+
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+
+                // 设置语言
+                recognition.lang = $('#voice_recognition_language').val() === 'zh' ? 'zh-CN' : 'en-US';
+
+                recognition.onstart = function() {
+                    console.log('浏览器语音识别开始');
+                    $('#voice_input').addClass('recording');
+                    $('#voice_status').show();
+                    $('.voice-text').text('正在聆听...');
+
+                    // 设置模型聆听状态
+                    setModelExpression('疑惑');
+                    playModelMotion('思考');
+                };
+
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (interimTranscript) {
+                        $('.voice-text').text('识别中: ' + interimTranscript);
+                    }
+
+                    if (finalTranscript) {
+                        $('#user_input').val(finalTranscript);
+                        $('.voice-text').text('识别结果: ' + finalTranscript);
+
+                        // 如果启用了自动发送
+                        if ($('#auto_send_voice').is(':checked')) {
+                            setTimeout(() => {
+                                $('#send_message').click();
+                            }, 500);
+                        }
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('语音识别错误:', event.error);
+                    $('.voice-text').text('识别错误: ' + event.error);
+                    stopRecording();
+                };
+
+                recognition.onend = function() {
+                    console.log('浏览器语音识别结束');
+                    stopRecording();
+                };
+
+                return true;
+            } catch (e) {
+                console.error('初始化浏览器语音识别失败:', e);
+                return false;
+            }
+        }
+
+        // 初始化媒体录制
+        async function initMediaRecorder() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstart = function() {
+                    audioChunks = [];
+                    console.log('开始录音');
+                    $('#voice_input').addClass('recording');
+                    $('#voice_status').show();
+                    $('.voice-text').text('正在录音...');
+
+                    // 设置模型聆听状态
+                    setModelExpression('疑惑');
+                    playModelMotion('思考');
+                };
+
+                mediaRecorder.onstop = async function() {
+                    console.log('录音结束');
+                    $('#voice_input').removeClass('recording');
+                    $('.voice-text').text('正在识别...');
+
+                    // 如果没有录制到音频数据，直接返回
+                    if (audioChunks.length === 0) {
+                        $('#voice_status').hide();
+                        return;
+                    }
+
+                    // 将音频数据合并为一个 Blob
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    // 根据识别模式选择不同的处理方式
+                    if ($('#voice_recognition_mode').val() === 'server') {
+                        // 服务器模式：发送到后端进行识别
+                        await sendAudioToServer(audioBlob);
+                    } else {
+                        // 浏览器模式：使用 Web Speech API
+                        if (recognition) {
+                            // 已经在使用 Web Speech API 进行识别
+                            $('#voice_status').hide();
+                        } else {
+                            $('.voice-text').text('浏览器模式不可用，已切换到服务器模式');
+                            await sendAudioToServer(audioBlob);
+                        }
+                    }
+                };
+
+                return true;
+            } catch (e) {
+                console.error('初始化媒体录制器失败:', e);
+                alert('无法访问麦克风，请检查浏览器权限设置。');
+                return false;
+            }
+        }
+
+        // 发送音频到服务器进行识别
+        async function sendAudioToServer(audioBlob) {
+            try {
+                $('.voice-text').text('正在将音频发送到服务器...');
+
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                formData.append('language', $('#voice_recognition_language').val());
+
+                const response = await fetch('/api/recognize_voice', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`服务器响应错误: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    $('#user_input').val(result.text);
+                    $('.voice-text').text('识别结果: ' + result.text);
+
+                    // 如果启用了自动发送
+                    if ($('#auto_send_voice').is(':checked')) {
+                        setTimeout(() => {
+                            $('#send_message').click();
+                        }, 500);
+                    }
+                } else {
+                    $('.voice-text').text('识别失败: ' + (result.error || '未知错误'));
+                }
+
+                // 3秒后隐藏状态
+                setTimeout(() => {
+                    $('#voice_status').hide();
+                }, 3000);
+
+            } catch (e) {
+                console.error('发送音频到服务器失败:', e);
+                $('.voice-text').text('发送失败: ' + e.message);
+
+                // 3秒后隐藏状态
+                setTimeout(() => {
+                    $('#voice_status').hide();
+                }, 3000);
+            }
+        }
+
+        // 开始录音
+        async function startRecording() {
+            if (isRecording) return;
+
+            // 检查是否启用语音识别
+            if (!$('#voice_recognition_enabled').is(':checked')) {
+                alert('语音识别已禁用，请在设置中启用。');
+                return;
+            }
+
+            isRecording = true;
+
+            // 根据识别模式选择不同的录音方式
+            if ($('#voice_recognition_mode').val() === 'browser') {
+                // 浏览器模式：使用 Web Speech API
+                if (!recognition && !initBrowserSpeechRecognition()) {
+                    // 如果浏览器不支持，切换到服务器模式
+                    $('#voice_recognition_mode').val('server');
+                    alert('浏览器不支持语音识别 API，已切换到服务器模式。');
+
+                    // 初始化媒体录制器
+                    if (!mediaRecorder && !await initMediaRecorder()) {
+                        isRecording = false;
+                        return;
+                    }
+
+                    // 开始录音
+                    mediaRecorder.start();
+                } else {
+                    // 设置语言
+                    recognition.lang = $('#voice_recognition_language').val() === 'zh' ? 'zh-CN' : 'en-US';
+                    recognition.start();
+                }
+            } else {
+                // 服务器模式：使用媒体录制器
+                if (!mediaRecorder && !await initMediaRecorder()) {
+                    isRecording = false;
+                    return;
+                }
+
+                // 开始录音
+                mediaRecorder.start();
+            }
+        }
+
+        // 停止录音
+        function stopRecording() {
+            if (!isRecording) return;
+
+            isRecording = false;
+            $('#voice_input').removeClass('recording');
+
+            if ($('#voice_recognition_mode').val() === 'browser' && recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.warn('停止语音识别时出错:', e);
+                }
+            } else if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            } else {
+                $('#voice_status').hide();
+            }
+        }
+
+        // 初始化 AudioContext
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                } catch (e) {
+                    console.error('初始化 AudioContext 失败:', e);
+                }
+            } else if (audioContext.state === 'suspended') {
+                audioContext.resume();
             }
         }
 
@@ -1300,9 +1701,57 @@
         $(document).ready(function() {
             // 加载可用模型列表
             loadAvailableModels();
-            
+
             // 设置模型更新按钮
             setupModelUpdateButton();
+
+            // 语音识别按钮事件
+            $('#voice_input').on('click', function() {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+
+            // 语音识别模式切换
+            $('#voice_recognition_mode').on('change', function() {
+                // 如果正在录音，停止录音
+                if (isRecording) {
+                    stopRecording();
+                }
+
+                // 重置语音识别状态
+                recognition = null;
+            });
+
+            // 语言切换
+            $('#voice_recognition_language').on('change', function() {
+                // 如果正在录音，停止录音
+                if (isRecording) {
+                    stopRecording();
+                }
+
+                // 重置语音识别状态
+                recognition = null;
+            });
+
+            // 标签切换事件增强
+            $(".tab").click(function() {
+                const tabGroup = $(this).parent();
+                const tabId = $(this).data("tab");
+
+                // 移除当前标签组中的所有激活标签
+                tabGroup.find(".tab").removeClass("active");
+                $(this).addClass("active");
+
+                // 找到相关的内容容器
+                const tabContents = tabGroup.parent().find(".tab-content");
+                tabContents.removeClass("active");
+
+                // 激活相应的内容
+                $(`#${tabId}-tab`).addClass("active");
+            });
 
             // 音量控制
             $("#volume").on('input', function() {
@@ -1325,7 +1774,7 @@
             $("#send_message").click(function() {
                 // 尝试初始化音频上下文（需要用户交互）
                 initAudioContext();
-                
+
                 const message = $("#user_input").val().trim();
                 if (message) {
                     sendMessage(message);
@@ -1349,10 +1798,10 @@
             $(".tab").click(function() {
                 $(".tab").removeClass("active");
                 $(this).addClass("active");
-                
+
                 const tabId = $(this).data("tab");
                 $(".tab-content").removeClass("active");
-                
+
                 if (tabId === "color") {
                     $("#color-tab").addClass("active");
                 } else if (tabId === "image") {
@@ -1370,7 +1819,7 @@
             $("#update_bg_image").click(function() {
                 const customUrl = $("#bg_image_url").val().trim();
                 const presetUrl = $("#bg_image_preset").val();
-                
+
                 const imageUrl = customUrl || presetUrl;
                 if (imageUrl) {
                     updateBackgroundImage(imageUrl);
@@ -1400,7 +1849,7 @@
 
             // 确保音频状态显示区域初始化
             updateAudioStatus('等待生成语音...');
-            
+
             // 加载默认模型
             setTimeout(() => {
                 const defaultModel = $("#model_list").val();
@@ -1418,7 +1867,7 @@
                         return false;
                     }
                 }
-                
+
                 if (audioContext.state === 'suspended') {
                     audioContext.resume().then(() => {
                         console.log("AudioContext已恢复");
@@ -1426,7 +1875,7 @@
                         console.error("恢复AudioContext失败:", error);
                     });
                 }
-                
+
                 return true;
             }
 
@@ -1434,11 +1883,11 @@
             $('#lipsync_enabled, #mouth_intensity, #blink_frequency').on('change input', function() {
                 updateLipSyncSettings();
             });
-            
+
             // 初始化更新一次口型同步设置
             updateLipSyncSettings();
         });
-        
+
         // 加载可用模型列表
         async function loadAvailableModels() {
             try {
@@ -1446,20 +1895,20 @@
                 if (!response.ok) {
                     throw new Error('获取模型列表失败');
                 }
-                
+
                 const models = await response.json();
                 console.log("服务器返回模型列表:", models);
-                
+
                 // 更新模型选择下拉框
                 const $modelSelect = $("#model_list");
                 $modelSelect.empty();
-                
+
                 models.forEach(model => {
                     modelPaths[model.name] = model.path;
                     modelTypes[model.name] = model.type;
                     $modelSelect.append($("<option>").attr("value", model.name).text(model.name));
                 });
-                
+
                 // 如果没有模型，显示提示
                 if (models.length === 0) {
                     alert("没有找到可用的Live2D模型，请确保模型文件夹存在并包含有效模型");
@@ -1477,7 +1926,7 @@
                 alert('无法加载模型列表，请检查服务器状态');
             }
         }
-        
+
         // 设置模型更新按钮事件
         function setupModelUpdateButton() {
             $("#update_model").click(function() {
@@ -1489,7 +1938,7 @@
                 }
             });
         }
-        
+
         // 检查并加载模型
         async function checkAndLoadModel(modelName) {
             try {
@@ -1501,44 +1950,44 @@
                         expressionTimeout = null;
                     }
                 }
-                
+
                 const modelPath = modelPaths[modelName];
                 if (!modelPath) {
                     alert(`找不到模型 ${modelName} 的路径配置`);
                     return;
                 }
-                
+
                 console.log(`开始验证模型: ${modelName} (${modelPath})`);
-                
+
                 // 验证模型文件
                 try {
                     const verifyResponse = await fetch(`/api/verify_model_files/${modelPath}`);
                     const verifyResult = await verifyResponse.json();
-                    
+
                     console.log("模型验证结果:", verifyResult);
-                    
+
                     if (!verifyResult.is_valid) {
                         let missingFiles = verifyResult.missing_files.join("\n- ");
                         alert(`模型 ${modelName} 缺少必要文件:\n- ${missingFiles}`);
                         return;
                     }
-                    
+
                     if (verifyResult.model_type === "cubism2" && modelTypes[modelName] === "cubism4") {
                         alert(`警告: ${modelName} 是Cubism 2格式，但当前配置为使用Cubism 4引擎加载`);
                     }
-                    
+
                     if (verifyResult.model_type === "cubism4" && modelTypes[modelName] === "cubism2") {
                         alert(`警告: ${modelName} 是Cubism 4格式，但当前配置为使用Cubism 2引擎加载`);
                     }
-                    
+
                 } catch (verifyError) {
                     console.warn(`验证模型文件失败: ${verifyError.message}, 尝试直接加载模型`);
                 }
-                
+
                 // 加载模型 - 只在这一个地方调用loadModel
                 console.log(`开始加载模型: ${modelName}`);
                 await loadModel(modelName);
-                
+
             } catch (error) {
                 console.error('模型加载过程失败:', error);
                 alert(`加载模型 ${modelName} 时出错: ${error.message}`);
@@ -1552,26 +2001,26 @@
                 if (!response.ok) {
                     throw new Error('检查LFS指针失败');
                 }
-                
+
                 const result = await response.json();
                 console.log("LFS检查结果:", result);
-                
+
                 let html = '';
-                
+
                 if (result.lfs_pointers_found) {
                     html += `<div class="alert alert-danger">
                         <p><strong>发现Git LFS指针文件!</strong></p>
                         <p>您的模型文件是Git LFS指针，而不是实际的模型数据，这就是模型无法加载的原因。</p>
                     </div>`;
-                    
+
                     html += `<h4>受影响的文件：</h4><ul>`;
                     result.files.forEach(file => {
                         html += `<li>${file.path} (当前大小: ${file.size} 字节, 预期大小: ${file.expected_size})</li>`;
                     });
                     html += `</ul>`;
-                    
+
                     html += `<h4>解决方案：</h4>`;
-                    
+
                     if (result.git_lfs_installed) {
                         html += `<p>1. Git LFS已安装，请运行以下命令拉取实际的模型文件：</p>
                         <pre>cd ${result.repo_path}
@@ -1584,7 +2033,7 @@ cd ${result.repo_path}
 git lfs install
 git lfs pull</pre>`;
                     }
-                    
+
                     html += `<p>2. 或者，您可以从Live2D官方网站下载示例模型：</p>
                     <p><a href="https://www.live2d.com/en/download/sample-data/" target="_blank">https://www.live2d.com/en/download/sample-data/</a></p>`;
                 } else {
@@ -1598,26 +2047,26 @@ git lfs pull</pre>`;
                         </ul>
                     </div>`;
                 }
-                
+
                 // 显示结果
                 document.getElementById('lfs_check_result').innerHTML = html;
                 document.getElementById('lfs_dialog').style.display = 'block';
-                
+
             } catch (error) {
                 console.error('检查LFS指针失败:', error);
                 alert(`检查模型文件失败: ${error.message}`);
             }
         }
-        
+
         // 处理对话框关闭
         document.querySelector('.close-btn').addEventListener('click', function() {
             document.getElementById('lfs_dialog').style.display = 'none';
         });
-        
+
         document.getElementById('close_lfs_dialog').addEventListener('click', function() {
             document.getElementById('lfs_dialog').style.display = 'none';
         });
-        
+
         // 绑定检查按钮事件
         document.getElementById('check_lfs').addEventListener('click', checkLFSPointers);
 
@@ -1626,11 +2075,11 @@ git lfs pull</pre>`;
             const lipSyncEnabled = $('#lipsync_enabled').is(':checked');
             const mouthIntensity = parseFloat($('#mouth_intensity').val());
             const blinkFrequency = $('#blink_frequency').val();
-            
+
             // 更新嘴巴开合强度
             lipSyncParams.mouthOpenMax = mouthIntensity;
             $('#mouth-value').text(mouthIntensity.toFixed(1));
-            
+
             // 更新眨眼频率
             switch (blinkFrequency) {
                 case 'high':
@@ -1646,7 +2095,7 @@ git lfs pull</pre>`;
                     lipSyncParams.blinkInterval = [1000000, 1000001]; // 实际上禁用眨眼
                     break;
             }
-            
+
             // 处理启用/禁用状态
             if (!lipSyncEnabled && lipSyncActive) {
                 stopLipSync();
