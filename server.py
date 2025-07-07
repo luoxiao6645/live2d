@@ -12,6 +12,57 @@ from flask import Flask, jsonify, send_from_directory, request, Response, stream
 from flask_cors import CORS
 import edge_tts
 
+# 导入RAG相关模块
+try:
+    from rag_manager import RAGManager
+    from document_processor import DocumentProcessor
+    RAG_AVAILABLE = True
+    logging.info("RAG模块加载成功")
+except ImportError as e:
+    RAG_AVAILABLE = False
+    logging.warning(f"RAG模块加载失败: {e}")
+    logging.warning("请安装必要的依赖项: pip install langchain langchain-community chromadb sentence-transformers")
+
+# 导入情感系统模块
+try:
+    from emotion_system import AdvancedAnimationController
+    EMOTION_SYSTEM_AVAILABLE = True
+    logging.info("情感系统模块加载成功")
+except ImportError as e:
+    EMOTION_SYSTEM_AVAILABLE = False
+    logging.warning(f"情感系统模块加载失败: {e}")
+    logging.warning("情感系统功能将不可用")
+
+# 导入多模态系统模块
+try:
+    from multimodal_system import MultimodalManager
+    MULTIMODAL_SYSTEM_AVAILABLE = True
+    logging.info("多模态系统模块加载成功")
+except ImportError as e:
+    MULTIMODAL_SYSTEM_AVAILABLE = False
+    logging.warning(f"多模态系统模块加载失败: {e}")
+    logging.warning("多模态系统功能将不可用")
+
+# 导入语音情感系统模块
+try:
+    from voice_emotion_system import VoiceEmotionManager
+    VOICE_EMOTION_SYSTEM_AVAILABLE = True
+    logging.info("语音情感系统模块加载成功")
+except ImportError as e:
+    VOICE_EMOTION_SYSTEM_AVAILABLE = False
+    logging.warning(f"语音情感系统模块加载失败: {e}")
+    logging.warning("语音情感系统功能将不可用")
+
+# 导入高级RAG系统模块
+try:
+    from advanced_rag_system import AdvancedRAGManager
+    ADVANCED_RAG_SYSTEM_AVAILABLE = True
+    logging.info("高级RAG系统模块加载成功")
+except ImportError as e:
+    ADVANCED_RAG_SYSTEM_AVAILABLE = False
+    logging.warning(f"高级RAG系统模块加载失败: {e}")
+    logging.warning("高级RAG系统功能将不可用")
+
 # 导入语音识别模块
 try:
     # 先尝试导入必要的依赖项
@@ -116,6 +167,76 @@ class SessionManager:
 # ======== 初始化模块 ========
 session_manager = SessionManager()
 
+# 初始化RAG模块
+if RAG_AVAILABLE:
+    try:
+        rag_manager = RAGManager()
+        document_processor = DocumentProcessor()
+        logger.info("RAG管理器和文档处理器初始化成功")
+    except Exception as e:
+        logger.error(f"RAG模块初始化失败: {e}")
+        RAG_AVAILABLE = False
+        rag_manager = None
+        document_processor = None
+else:
+    rag_manager = None
+    document_processor = None
+
+# 初始化情感系统
+if EMOTION_SYSTEM_AVAILABLE:
+    try:
+        emotion_controller = AdvancedAnimationController(use_ml_emotion_analysis=False)
+        logger.info("情感系统初始化成功")
+    except Exception as e:
+        logger.error(f"情感系统初始化失败: {e}")
+        EMOTION_SYSTEM_AVAILABLE = False
+        emotion_controller = None
+else:
+    emotion_controller = None
+
+# 初始化多模态系统
+if MULTIMODAL_SYSTEM_AVAILABLE:
+    try:
+        multimodal_manager = MultimodalManager(
+            rag_manager=rag_manager if RAG_AVAILABLE else None
+        )
+        logger.info("多模态系统初始化成功")
+    except Exception as e:
+        logger.error(f"多模态系统初始化失败: {e}")
+        MULTIMODAL_SYSTEM_AVAILABLE = False
+        multimodal_manager = None
+else:
+    multimodal_manager = None
+
+# 初始化语音情感系统
+if VOICE_EMOTION_SYSTEM_AVAILABLE:
+    try:
+        voice_emotion_manager = VoiceEmotionManager(
+            emotion_controller=emotion_controller if EMOTION_SYSTEM_AVAILABLE else None
+        )
+        logger.info("语音情感系统初始化成功")
+    except Exception as e:
+        logger.error(f"语音情感系统初始化失败: {e}")
+        VOICE_EMOTION_SYSTEM_AVAILABLE = False
+        voice_emotion_manager = None
+else:
+    voice_emotion_manager = None
+
+# 初始化高级RAG系统
+if ADVANCED_RAG_SYSTEM_AVAILABLE:
+    try:
+        advanced_rag_manager = AdvancedRAGManager(
+            rag_manager=rag_manager if RAG_AVAILABLE else None,
+            multimodal_manager=multimodal_manager if MULTIMODAL_SYSTEM_AVAILABLE else None
+        )
+        logger.info("高级RAG系统初始化成功")
+    except Exception as e:
+        logger.error(f"高级RAG系统初始化失败: {e}")
+        ADVANCED_RAG_SYSTEM_AVAILABLE = False
+        advanced_rag_manager = None
+else:
+    advanced_rag_manager = None
+
 # 启动后台清理线程
 def cleanup_task():
     while True:
@@ -161,6 +282,26 @@ def generate():
         # 调用Ollama
         def generate_stream():
             full_response = ""
+            emotion_analysis_result = None
+
+            # 如果情感系统可用，先分析用户输入的情感
+            if EMOTION_SYSTEM_AVAILABLE and emotion_controller:
+                try:
+                    emotion_analysis_result = emotion_controller.process_text_input(
+                        user_input, trigger_animation=True
+                    )
+
+                    # 发送情感分析结果
+                    yield json.dumps({
+                        "session_id": session_id,
+                        "type": "emotion_analysis",
+                        "emotion_data": emotion_analysis_result,
+                        "done": False
+                    }) + "\n"
+
+                except Exception as e:
+                    logger.warning(f"情感分析失败: {e}")
+
             response = requests.post(
                 f"{OLLAMA_API_URL}/api/generate",
                 json={
@@ -188,17 +329,39 @@ def generate():
                             }) + "\n"
 
                         if chunk.get('done'):
+                            # 分析AI回复的情感（用于调整表情）
+                            ai_emotion_result = None
+                            if EMOTION_SYSTEM_AVAILABLE and emotion_controller and full_response:
+                                try:
+                                    ai_emotion_result = emotion_controller.process_text_input(
+                                        full_response, trigger_animation=True
+                                    )
+                                except Exception as e:
+                                    logger.warning(f"AI回复情感分析失败: {e}")
+
                             # 保存完整对话
                             session_manager.add_message(session_id, "user", user_input)
                             session_manager.add_message(session_id, "assistant", full_response)
+
                             # 生成语音
                             audio_file = asyncio.run(text_to_speech(full_response.strip()))
-                            yield json.dumps({
+
+                            # 准备完成数据
+                            completion_data = {
                                 "session_id": session_id,
                                 "chunk": "",
                                 "done": True,
                                 "audio_url": f"/audio/{os.path.basename(audio_file)}" if audio_file else None
-                            }) + "\n"
+                            }
+
+                            # 添加情感分析结果
+                            if emotion_analysis_result:
+                                completion_data["user_emotion"] = emotion_analysis_result
+                            if ai_emotion_result:
+                                completion_data["ai_emotion"] = ai_emotion_result
+                                completion_data["live2d_parameters"] = emotion_controller.get_current_live2d_parameters()
+
+                            yield json.dumps(completion_data) + "\n"
             finally:
                 response.close()
 
@@ -206,6 +369,139 @@ def generate():
 
     except Exception as e:
         logger.error(f"处理请求失败: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/rag_generate', methods=['POST'])
+def rag_generate():
+    """RAG增强的对话生成"""
+    if not RAG_AVAILABLE:
+        return jsonify({"error": "RAG功能不可用"}), 503
+
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        user_input = data.get('prompt')
+        role_prompt = data.get('role_prompt', '你是一个AI助手，会基于提供的文档内容认真回答用户的问题。')
+        model_name = data.get('model_name', 'qwen2:0.5b')
+        temperature = data.get('temperature', 0.7)
+        use_rag = data.get('use_rag', True)
+
+        # 处理新会话
+        if not session_id or session_id not in session_manager.sessions:
+            session_id = session_manager.create_session(model_name)
+
+        def generate_rag_stream():
+            full_response = ""
+            retrieved_docs = []
+
+            try:
+                if use_rag:
+                    # 使用RAG模式
+                    rag_chain = rag_manager.create_rag_chain(model_name, temperature)
+
+                    # 先检索相关文档
+                    retrieved_docs = rag_manager.search_documents(user_input, k=3)
+
+                    # 发送检索到的文档信息
+                    if retrieved_docs:
+                        docs_info = []
+                        for doc in retrieved_docs:
+                            docs_info.append({
+                                "content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
+                                "source": doc.metadata.get("source_file", "未知"),
+                                "doc_id": doc.metadata.get("doc_id", "")
+                            })
+
+                        yield json.dumps({
+                            "session_id": session_id,
+                            "type": "retrieved_docs",
+                            "docs": docs_info,
+                            "done": False
+                        }) + "\n"
+
+                    # 使用RAG链生成回答
+                    try:
+                        # 由于RAG链可能不支持流式输出，我们先获取完整回答
+                        full_response = rag_chain.invoke(user_input)
+
+                        # 模拟流式输出
+                        words = full_response.split()
+                        for i, word in enumerate(words):
+                            chunk = word + " "
+                            yield json.dumps({
+                                "session_id": session_id,
+                                "chunk": chunk,
+                                "done": False
+                            }) + "\n"
+                            time.sleep(0.05)  # 小延迟模拟流式效果
+
+                    except Exception as e:
+                        logger.error(f"RAG生成失败，回退到普通模式: {e}")
+                        # 回退到普通Ollama模式
+                        use_rag = False
+
+                if not use_rag:
+                    # 普通模式（原有逻辑）
+                    context = session_manager.get_context(session_id)
+                    full_prompt = f"{role_prompt}\n\n对话历史：\n{context}\n\n用户：{user_input}\n助手："
+
+                    response = requests.post(
+                        f"{OLLAMA_API_URL}/api/generate",
+                        json={
+                            "model": model_name,
+                            "prompt": full_prompt,
+                            "stream": True,
+                            "options": {
+                                "temperature": temperature,
+                                "top_p": data.get('top_p', 1.0)
+                            }
+                        },
+                        stream=True
+                    )
+
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line:
+                            chunk = json.loads(line)
+                            if 'response' in chunk:
+                                full_response += chunk['response']
+                                yield json.dumps({
+                                    "session_id": session_id,
+                                    "chunk": chunk['response'],
+                                    "done": False
+                                }) + "\n"
+
+                            if chunk.get('done'):
+                                break
+
+                # 保存对话历史
+                session_manager.add_message(session_id, "user", user_input)
+                session_manager.add_message(session_id, "assistant", full_response)
+
+                # 生成语音
+                audio_file = asyncio.run(text_to_speech(full_response.strip()))
+
+                # 发送完成信号
+                yield json.dumps({
+                    "session_id": session_id,
+                    "chunk": "",
+                    "done": True,
+                    "audio_url": f"/audio/{os.path.basename(audio_file)}" if audio_file else None,
+                    "used_rag": use_rag,
+                    "retrieved_docs_count": len(retrieved_docs) if retrieved_docs else 0
+                }) + "\n"
+
+            except Exception as e:
+                logger.error(f"RAG生成过程中出错: {e}")
+                yield json.dumps({
+                    "session_id": session_id,
+                    "error": str(e),
+                    "done": True
+                }) + "\n"
+
+        return Response(stream_with_context(generate_rag_stream()), content_type='application/json')
+
+    except Exception as e:
+        logger.error(f"RAG请求处理失败: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 # ======== 新增会话管理接口 ========
@@ -223,6 +519,886 @@ def delete_session(session_id):
             del session_manager.sessions[session_id]
             return jsonify({"status": "deleted"})
         return jsonify({"error": "Session not found"}), 404
+
+# ======== RAG相关接口 ========
+@app.route('/api/rag/status', methods=['GET'])
+def get_rag_status():
+    """获取RAG功能状态"""
+    return jsonify({
+        "available": RAG_AVAILABLE,
+        "knowledge_base_info": rag_manager.get_knowledge_base_info() if RAG_AVAILABLE else None
+    })
+
+@app.route('/api/rag/upload', methods=['POST'])
+def upload_document():
+    """上传文档到知识库"""
+    if not RAG_AVAILABLE:
+        return jsonify({"error": "RAG功能不可用"}), 503
+
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "没有上传文件"}), 400
+
+        file = request.files['file']
+
+        # 保存上传的文件
+        success, result, file_info = document_processor.save_uploaded_file(file)
+        if not success:
+            return jsonify({"error": result}), 400
+
+        file_path = result
+
+        # 处理文档并添加到知识库
+        metadata = {
+            "original_filename": file_info.get("original_filename"),
+            "file_size": file_info.get("file_size"),
+            "file_type": file_info.get("file_type")
+        }
+
+        doc_id = rag_manager.process_and_store_document(file_path, metadata)
+
+        return jsonify({
+            "success": True,
+            "doc_id": doc_id,
+            "file_info": file_info,
+            "message": "文档上传并处理成功"
+        })
+
+    except Exception as e:
+        logger.error(f"上传文档失败: {e}")
+        return jsonify({"error": f"上传文档失败: {str(e)}"}), 500
+
+@app.route('/api/rag/knowledge_base', methods=['GET'])
+def get_knowledge_base():
+    """获取知识库信息"""
+    if not RAG_AVAILABLE:
+        return jsonify({"error": "RAG功能不可用"}), 503
+
+    try:
+        kb_info = rag_manager.get_knowledge_base_info()
+        uploaded_files = document_processor.list_uploaded_files()
+
+        return jsonify({
+            "knowledge_base": kb_info,
+            "uploaded_files": uploaded_files
+        })
+
+    except Exception as e:
+        logger.error(f"获取知识库信息失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/rag/search', methods=['POST'])
+def search_documents():
+    """搜索相关文档"""
+    if not RAG_AVAILABLE:
+        return jsonify({"error": "RAG功能不可用"}), 503
+
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        k = data.get('k', 5)
+
+        if not query:
+            return jsonify({"error": "查询内容不能为空"}), 400
+
+        results = rag_manager.search_documents(query, k)
+
+        # 格式化结果
+        formatted_results = []
+        for doc in results:
+            formatted_results.append({
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "source": doc.metadata.get("source_file", "未知"),
+                "doc_id": doc.metadata.get("doc_id", "")
+            })
+
+        return jsonify({
+            "query": query,
+            "results": formatted_results,
+            "count": len(formatted_results)
+        })
+
+    except Exception as e:
+        logger.error(f"搜索文档失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/rag/delete/<doc_id>', methods=['DELETE'])
+def delete_document(doc_id):
+    """删除知识库中的文档"""
+    if not RAG_AVAILABLE:
+        return jsonify({"error": "RAG功能不可用"}), 503
+
+    try:
+        success = rag_manager.delete_document(doc_id)
+        if success:
+            return jsonify({"success": True, "message": "文档删除成功"})
+        else:
+            return jsonify({"error": "文档删除失败或文档不存在"}), 404
+
+    except Exception as e:
+        logger.error(f"删除文档失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ======== 情感系统相关接口 ========
+@app.route('/api/emotion/status', methods=['GET'])
+def get_emotion_status():
+    """获取情感系统状态"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"available": False, "error": "情感系统不可用"}), 503
+
+    try:
+        status = emotion_controller.get_system_status()
+        return jsonify({
+            "available": True,
+            "status": status
+        })
+    except Exception as e:
+        logger.error(f"获取情感系统状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/analyze', methods=['POST'])
+def analyze_emotion():
+    """分析文本情感"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+
+        if not text:
+            return jsonify({"error": "文本内容不能为空"}), 400
+
+        result = emotion_controller.process_text_input(text, trigger_animation=False)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"情感分析失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/trigger', methods=['POST'])
+def trigger_emotion():
+    """触发特定情感状态"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        emotion_type = data.get('emotion_type', 'neutral')
+        intensity = data.get('intensity', 0.8)
+
+        success = emotion_controller.force_emotion(emotion_type, intensity)
+
+        if success:
+            current_state = emotion_controller.emotion_state_manager.get_current_state()
+            return jsonify({
+                "success": True,
+                "current_state": current_state,
+                "live2d_parameters": emotion_controller.get_current_live2d_parameters()
+            })
+        else:
+            return jsonify({"error": "设置情感状态失败"}), 500
+
+    except Exception as e:
+        logger.error(f"触发情感失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/gesture', methods=['POST'])
+def trigger_gesture():
+    """触发手势动画"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        gesture_name = data.get('gesture_name', '')
+
+        if not gesture_name:
+            return jsonify({"error": "手势名称不能为空"}), 400
+
+        # 提取额外参数
+        kwargs = {k: v for k, v in data.items() if k != 'gesture_name'}
+
+        success = emotion_controller.trigger_gesture(gesture_name, **kwargs)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "gesture_name": gesture_name,
+                "active_animations": emotion_controller.animation_sequencer.get_active_animations()
+            })
+        else:
+            return jsonify({"error": f"触发手势失败: {gesture_name}"}), 500
+
+    except Exception as e:
+        logger.error(f"触发手势失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/parameters', methods=['GET'])
+def get_live2d_parameters():
+    """获取当前Live2D参数"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        parameters = emotion_controller.get_current_live2d_parameters()
+        return jsonify({
+            "success": True,
+            "parameters": parameters,
+            "timestamp": time.time()
+        })
+
+    except Exception as e:
+        logger.error(f"获取Live2D参数失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/history', methods=['GET'])
+def get_emotion_history():
+    """获取情感历史记录"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        history = emotion_controller.get_emotion_history(limit)
+
+        return jsonify({
+            "success": True,
+            "history": history,
+            "count": len(history)
+        })
+
+    except Exception as e:
+        logger.error(f"获取情感历史失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/emotion/reset', methods=['POST'])
+def reset_emotion():
+    """重置情感状态到中性"""
+    if not EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "情感系统不可用"}), 503
+
+    try:
+        emotion_controller.reset_to_neutral()
+
+        return jsonify({
+            "success": True,
+            "message": "情感状态已重置到中性",
+            "current_state": emotion_controller.emotion_state_manager.get_current_state()
+        })
+
+    except Exception as e:
+        logger.error(f"重置情感状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ======== 多模态系统相关接口 ========
+@app.route('/api/multimodal/status', methods=['GET'])
+def get_multimodal_status():
+    """获取多模态系统状态"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"available": False, "error": "多模态系统不可用"}), 503
+
+    try:
+        status = multimodal_manager.get_system_status()
+        return jsonify({
+            "available": True,
+            "status": status
+        })
+    except Exception as e:
+        logger.error(f"获取多模态系统状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/upload', methods=['POST'])
+def upload_image():
+    """上传图像"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        # 检查文件
+        if 'file' not in request.files:
+            return jsonify({"error": "没有上传文件"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "没有选择文件"}), 400
+
+        # 获取额外参数
+        description = request.form.get('description', '')
+        add_to_kb = request.form.get('add_to_knowledge_base', 'true').lower() == 'true'
+
+        # 处理图像
+        result = multimodal_manager.upload_and_process_image(
+            file,
+            description if description else None,
+            add_to_kb
+        )
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"图像上传失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/analyze', methods=['POST'])
+def analyze_image():
+    """分析图像内容"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        image_id = data.get('image_id')
+        question = data.get('question', '')
+
+        if not image_id:
+            return jsonify({"error": "缺少image_id参数"}), 400
+
+        if question:
+            # 问答分析
+            result = multimodal_manager.analyze_image_with_question(image_id, question)
+        else:
+            # 获取基本信息
+            result = multimodal_manager.get_image_info(image_id)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"图像分析失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/search', methods=['POST'])
+def search_multimodal():
+    """多模态搜索"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        search_type = data.get('search_type', 'all')  # all, images, text
+
+        if not query:
+            return jsonify({"error": "搜索查询不能为空"}), 400
+
+        result = multimodal_manager.search_multimodal_content(query, search_type)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"多模态搜索失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/compare', methods=['POST'])
+def compare_images():
+    """比较图像"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        image_id1 = data.get('image_id1')
+        image_id2 = data.get('image_id2')
+        comparison_aspect = data.get('comparison_aspect', '整体相似性')
+
+        if not image_id1 or not image_id2:
+            return jsonify({"error": "需要提供两个图像ID"}), 400
+
+        result = multimodal_manager.compare_images(image_id1, image_id2, comparison_aspect)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"图像比较失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/images', methods=['GET'])
+def list_images():
+    """列出所有图像"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        result = multimodal_manager.list_processed_images()
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"列出图像失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/multimodal/images/<image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    """删除图像"""
+    if not MULTIMODAL_SYSTEM_AVAILABLE:
+        return jsonify({"error": "多模态系统不可用"}), 503
+
+    try:
+        result = multimodal_manager.delete_image(image_id)
+
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), 404
+
+    except Exception as e:
+        logger.error(f"删除图像失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ======== 语音情感系统相关接口 ========
+@app.route('/api/voice/status', methods=['GET'])
+def get_voice_emotion_status():
+    """获取语音情感系统状态"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"available": False, "error": "语音情感系统不可用"}), 503
+
+    try:
+        status = voice_emotion_manager.get_system_status()
+        return jsonify({
+            "available": True,
+            "status": status
+        })
+    except Exception as e:
+        logger.error(f"获取语音情感系统状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/synthesize', methods=['POST'])
+def synthesize_emotion_voice():
+    """情感语音合成"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        emotion = data.get('emotion', 'neutral')
+        intensity = float(data.get('intensity', 1.0))
+        voice_name = data.get('voice_name')
+        language = data.get('language')
+        style = data.get('style')
+        realtime = data.get('realtime', False)
+
+        if not text:
+            return jsonify({"error": "文本内容不能为空"}), 400
+
+        # 转换情感类型
+        from voice_emotion_system.voice_emotion_config import EmotionType, VoiceLanguage
+        try:
+            emotion_type = EmotionType(emotion)
+        except ValueError:
+            emotion_type = EmotionType.NEUTRAL
+
+        # 转换语言
+        voice_language = None
+        if language:
+            try:
+                voice_language = VoiceLanguage(language)
+            except ValueError:
+                pass
+
+        if realtime:
+            # 实时合成
+            task_id = voice_emotion_manager.synthesize_realtime(
+                text, emotion_type, intensity, auto_play=data.get('auto_play', False)
+            )
+
+            if task_id:
+                return jsonify({
+                    "success": True,
+                    "task_id": task_id,
+                    "message": "实时合成任务已提交"
+                })
+            else:
+                return jsonify({"error": "实时合成任务提交失败"}), 500
+        else:
+            # 同步合成
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            try:
+                result = loop.run_until_complete(
+                    voice_emotion_manager.synthesize_with_emotion(
+                        text, emotion_type, intensity, voice_name, voice_language, style
+                    )
+                )
+            finally:
+                loop.close()
+
+            return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"情感语音合成失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/task/<task_id>', methods=['GET'])
+def get_voice_task_status(task_id):
+    """获取语音合成任务状态"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        status = voice_emotion_manager.get_task_status(task_id)
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"获取任务状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/task/<task_id>', methods=['DELETE'])
+def cancel_voice_task(task_id):
+    """取消语音合成任务"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        success = voice_emotion_manager.cancel_task(task_id)
+        if success:
+            return jsonify({"success": True, "message": "任务已取消"})
+        else:
+            return jsonify({"success": False, "message": "任务取消失败"}), 404
+    except Exception as e:
+        logger.error(f"取消任务失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/style', methods=['POST'])
+def set_voice_style():
+    """设置语音风格"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        style_name = data.get('style_name', 'default')
+
+        result = voice_emotion_manager.set_voice_style(style_name)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"设置语音风格失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/voices', methods=['GET'])
+def get_available_voices():
+    """获取可用语音列表"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        language = request.args.get('language')
+
+        if language:
+            from voice_emotion_system.voice_emotion_config import VoiceLanguage
+            try:
+                voice_language = VoiceLanguage(language)
+                voices = voice_emotion_manager.get_available_voices(voice_language)
+            except ValueError:
+                voices = voice_emotion_manager.get_available_voices()
+        else:
+            voices = voice_emotion_manager.get_available_voices()
+
+        return jsonify(voices)
+
+    except Exception as e:
+        logger.error(f"获取可用语音失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/styles', methods=['GET'])
+def get_available_styles():
+    """获取可用语音风格"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        styles = voice_emotion_manager.get_available_styles()
+        return jsonify(styles)
+
+    except Exception as e:
+        logger.error(f"获取可用风格失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/emotions', methods=['GET'])
+def get_supported_emotions():
+    """获取支持的情感类型"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        emotions = voice_emotion_manager.get_supported_emotions()
+        return jsonify({"emotions": emotions})
+
+    except Exception as e:
+        logger.error(f"获取支持的情感失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/languages', methods=['GET'])
+def get_supported_languages():
+    """获取支持的语言"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        languages = voice_emotion_manager.get_supported_languages()
+        return jsonify({"languages": languages})
+
+    except Exception as e:
+        logger.error(f"获取支持的语言失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/settings', methods=['POST'])
+def update_voice_settings():
+    """更新语音设置"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        result = voice_emotion_manager.update_settings(data)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"更新语音设置失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/voice/test', methods=['POST'])
+def test_voice_synthesis():
+    """测试语音合成"""
+    if not VOICE_EMOTION_SYSTEM_AVAILABLE:
+        return jsonify({"error": "语音情感系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        test_text = data.get('text', '你好，这是语音测试。')
+
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        try:
+            result = loop.run_until_complete(
+                voice_emotion_manager.test_voice_synthesis(test_text)
+            )
+        finally:
+            loop.close()
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"语音合成测试失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ======== 高级RAG系统相关接口 ========
+@app.route('/api/advanced-rag/status', methods=['GET'])
+def get_advanced_rag_status():
+    """获取高级RAG系统状态"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"available": False, "error": "高级RAG系统不可用"}), 503
+
+    try:
+        status = advanced_rag_manager.get_system_status()
+        return jsonify({
+            "available": True,
+            "status": status
+        })
+    except Exception as e:
+        logger.error(f"获取高级RAG系统状态失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/process-document', methods=['POST'])
+def process_document_advanced():
+    """高级文档处理"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        doc_id = data.get('doc_id')
+        image_path = data.get('image_path')
+        metadata = data.get('metadata', {})
+
+        if not text:
+            return jsonify({"error": "文本内容不能为空"}), 400
+
+        result = advanced_rag_manager.process_document(
+            text=text,
+            doc_id=doc_id,
+            image_path=image_path,
+            metadata=metadata
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"高级文档处理失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/query', methods=['POST'])
+def advanced_query():
+    """高级查询"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        query_type = data.get('query_type', 'auto')
+        max_results = int(data.get('max_results', 10))
+        include_reasoning = data.get('include_reasoning', True)
+
+        if not query:
+            return jsonify({"error": "查询内容不能为空"}), 400
+
+        result = advanced_rag_manager.advanced_query(
+            query=query,
+            query_type=query_type,
+            max_results=max_results,
+            include_reasoning=include_reasoning
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"高级查询失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/reasoning', methods=['POST'])
+def multimodal_reasoning():
+    """多模态推理"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        image_path = data.get('image_path')
+        reasoning_type = data.get('reasoning_type', 'path_based')
+
+        if not query:
+            return jsonify({"error": "查询内容不能为空"}), 400
+
+        result = advanced_rag_manager.multimodal_reasoning(
+            query=query,
+            image_path=image_path,
+            reasoning_type=reasoning_type
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"多模态推理失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/graph-query', methods=['POST'])
+def graph_query():
+    """图查询"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+
+        if not query:
+            return jsonify({"error": "查询内容不能为空"}), 400
+
+        result = advanced_rag_manager.query_processor.process_query(query)
+
+        return jsonify(result.to_dict())
+
+    except Exception as e:
+        logger.error(f"图查询失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/vectorize', methods=['POST'])
+def advanced_vectorize():
+    """高级向量化"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        image_path = data.get('image_path')
+        fusion_strategy = data.get('fusion_strategy', 'concatenate')
+
+        if not text:
+            return jsonify({"error": "文本内容不能为空"}), 400
+
+        if image_path:
+            # 图文混合向量化
+            embedding = advanced_rag_manager.vectorizer.vectorize_multimodal(
+                text, image_path, fusion_strategy
+            )
+            vector_type = "multimodal"
+        else:
+            # 纯文本向量化
+            embedding = advanced_rag_manager.vectorizer.vectorize_text(text)
+            vector_type = "text"
+
+        result = {
+            "success": True,
+            "vector_type": vector_type,
+            "dimension": len(embedding),
+            "embedding": embedding.tolist(),
+            "fusion_strategy": fusion_strategy if image_path else None
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"高级向量化失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/build-graph', methods=['POST'])
+def build_knowledge_graph():
+    """构建知识图谱"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        doc_id = data.get('doc_id')
+
+        if not text:
+            return jsonify({"error": "文本内容不能为空"}), 400
+
+        result = advanced_rag_manager.kg_builder.build_graph_from_document(text, doc_id)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"知识图谱构建失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/graph-stats', methods=['GET'])
+def get_graph_stats():
+    """获取图谱统计信息"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        stats = advanced_rag_manager.kg_builder.get_graph_stats()
+        return jsonify(stats)
+
+    except Exception as e:
+        logger.error(f"获取图谱统计失败: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/advanced-rag/clear-caches', methods=['POST'])
+def clear_advanced_rag_caches():
+    """清理高级RAG缓存"""
+    if not ADVANCED_RAG_SYSTEM_AVAILABLE:
+        return jsonify({"error": "高级RAG系统不可用"}), 503
+
+    try:
+        advanced_rag_manager.clear_caches()
+        return jsonify({"success": True, "message": "缓存清理完成"})
+
+    except Exception as e:
+        logger.error(f"缓存清理失败: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # ======== 其他原有路由保持不变 ========
 @app.route('/audio/<filename>')

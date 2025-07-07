@@ -526,6 +526,382 @@
             </div>
         </div>
 
+        <!-- 高级情感系统 -->
+        <div class="section">
+            <div class="section-title">🎭 高级情感系统</div>
+            <label>
+                <input type="checkbox" id="advanced_emotion_enabled" checked> 启用高级情感系统
+            </label>
+
+            <!-- 情感系统状态 -->
+            <div id="emotion_system_status" style="margin: 10px 0; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
+
+            <!-- 当前情感状态显示 -->
+            <div id="current_emotion_display" style="margin: 10px 0; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-weight: bold; margin-bottom: 5px;">当前情感状态:</div>
+                <div id="emotion_type_display">中性</div>
+                <div id="emotion_intensity_display">强度: 轻微</div>
+                <div id="emotion_transition_display" style="font-size: 11px; color: #666;"></div>
+            </div>
+
+            <!-- 手动情感控制 -->
+            <div style="margin: 10px 0;">
+                <label>手动设置情感:</label>
+                <select id="manual_emotion_type">
+                    <option value="neutral">中性</option>
+                    <option value="happy">开心</option>
+                    <option value="sad">悲伤</option>
+                    <option value="angry">生气</option>
+                    <option value="surprised">惊讶</option>
+                    <option value="confused">困惑</option>
+                    <option value="shy">害羞</option>
+                    <option value="excited">兴奋</option>
+                    <option value="worried">担心</option>
+                    <option value="loving">喜爱</option>
+                    <option value="thinking">思考</option>
+                    <option value="sleepy">困倦</option>
+                </select>
+                <input type="range" id="manual_emotion_intensity" min="0.1" max="1.0" step="0.1" value="0.8">
+                <button onclick="setManualEmotion()">设置</button>
+            </div>
+
+            <!-- 手势控制 -->
+            <div style="margin: 10px 0;">
+                <label>触发手势:</label>
+                <select id="gesture_type">
+                    <option value="blink">眨眼</option>
+                    <option value="nod">点头</option>
+                    <option value="shake">摇头</option>
+                    <option value="wave">挥手</option>
+                    <option value="thinking">思考</option>
+                </select>
+                <button onclick="triggerGesture()">触发</button>
+            </div>
+
+            <!-- 自动动画控制 -->
+            <div style="margin: 10px 0;">
+                <label>
+                    <input type="checkbox" id="auto_blink" checked> 自动眨眼
+                </label>
+                <label>
+                    <input type="checkbox" id="auto_idle" checked> 自动空闲动画
+                </label>
+            </div>
+
+            <!-- 情感历史 -->
+            <div style="margin: 10px 0;">
+                <button onclick="showEmotionHistory()">查看情感历史</button>
+                <button onclick="resetEmotion()">重置到中性</button>
+            </div>
+
+            <!-- 情感历史显示 -->
+            <div id="emotion_history_display" style="max-height: 100px; overflow-y: auto; font-size: 11px; display: none;"></div>
+        </div>
+
+        <!-- 多模态AI系统 -->
+        <div class="section">
+            <div class="section-title">🖼️ 多模态AI系统</div>
+            <label>
+                <input type="checkbox" id="multimodal_enabled"> 启用多模态功能
+            </label>
+
+            <!-- 多模态系统状态 -->
+            <div id="multimodal_status" style="margin: 10px 0; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
+
+            <div id="multimodal_controls" style="display: none;">
+                <!-- 图像上传 -->
+                <div style="margin: 10px 0;">
+                    <label>上传图像:</label>
+                    <input type="file" id="image_upload" accept="image/*" style="margin: 5px 0;">
+                    <button id="upload_image_btn" onclick="uploadImage()">上传</button>
+                </div>
+
+                <!-- 上传进度 -->
+                <div id="image_upload_progress" style="display: none; margin: 10px 0;">
+                    <div style="background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                        <div id="image_progress_bar" style="height: 20px; background: #4CAF50; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <div id="image_progress_text" style="font-size: 12px; margin-top: 5px;"></div>
+                </div>
+
+                <!-- 图像列表 -->
+                <div id="uploaded_images" style="max-height: 200px; overflow-y: auto; margin: 10px 0;"></div>
+
+                <!-- 图像分析 -->
+                <div style="margin: 10px 0;">
+                    <label>选择图像:</label>
+                    <select id="selected_image_id" style="width: 60%;">
+                        <option value="">请选择图像</option>
+                    </select>
+                    <button onclick="analyzeSelectedImage()" style="width: 35%;">分析</button>
+                </div>
+
+                <!-- 图像问答 -->
+                <div style="margin: 10px 0;">
+                    <input type="text" id="image_question" placeholder="对图像提问..." style="width: 70%;">
+                    <button onclick="askImageQuestion()" style="width: 25%;">提问</button>
+                </div>
+
+                <!-- 多模态搜索 -->
+                <div style="margin: 10px 0;">
+                    <input type="text" id="multimodal_search_query" placeholder="搜索图像和文本..." style="width: 50%;">
+                    <select id="search_type" style="width: 20%;">
+                        <option value="all">全部</option>
+                        <option value="images">图像</option>
+                        <option value="text">文本</option>
+                    </select>
+                    <button onclick="searchMultimodal()" style="width: 25%;">搜索</button>
+                </div>
+
+                <!-- 搜索结果 -->
+                <div id="multimodal_search_results" style="max-height: 150px; overflow-y: auto; font-size: 11px;"></div>
+
+                <!-- 图像比较 -->
+                <div style="margin: 10px 0;">
+                    <label>图像比较:</label>
+                    <select id="compare_image1" style="width: 30%;">
+                        <option value="">图像1</option>
+                    </select>
+                    <select id="compare_image2" style="width: 30%;">
+                        <option value="">图像2</option>
+                    </select>
+                    <button onclick="compareImages()" style="width: 35%;">比较</button>
+                </div>
+
+                <!-- 比较结果 -->
+                <div id="image_comparison_result" style="font-size: 11px; margin: 10px 0;"></div>
+            </div>
+        </div>
+
+        <!-- 语音情感系统 -->
+        <div class="section">
+            <div class="section-title">🎵 语音情感系统</div>
+            <label>
+                <input type="checkbox" id="voice_emotion_enabled"> 启用语音情感功能
+            </label>
+
+            <!-- 语音情感系统状态 -->
+            <div id="voice_emotion_status" style="margin: 10px 0; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
+
+            <div id="voice_emotion_controls" style="display: none;">
+                <!-- 语音风格选择 -->
+                <div style="margin: 10px 0;">
+                    <label>语音风格:</label>
+                    <select id="voice_style_select" style="width: 70%;">
+                        <option value="default">默认风格</option>
+                        <option value="gentle">温柔风格</option>
+                        <option value="energetic">活力风格</option>
+                        <option value="calm">平静风格</option>
+                        <option value="cute">可爱风格</option>
+                    </select>
+                    <button onclick="setVoiceStyle()" style="width: 25%;">设置</button>
+                </div>
+
+                <!-- 语音角色选择 -->
+                <div style="margin: 10px 0;">
+                    <label>语音角色:</label>
+                    <select id="voice_character_select" style="width: 50%;">
+                        <option value="xiaoxiao">晓晓(女声)</option>
+                        <option value="yunxi">云希(男声)</option>
+                        <option value="xiaoyi">晓伊(女声)</option>
+                        <option value="yunjian">云健(男声)</option>
+                        <option value="xiaomeng">晓梦(女声)</option>
+                    </select>
+                    <select id="voice_language_select" style="width: 30%;">
+                        <option value="zh-CN">中文</option>
+                        <option value="en-US">英文</option>
+                    </select>
+                    <button onclick="setVoiceCharacter()" style="width: 15%;">设置</button>
+                </div>
+
+                <!-- 情感设置 -->
+                <div style="margin: 10px 0;">
+                    <label>情感类型:</label>
+                    <select id="emotion_type_select" style="width: 40%;">
+                        <option value="neutral">中性</option>
+                        <option value="happy">开心</option>
+                        <option value="sad">悲伤</option>
+                        <option value="excited">兴奋</option>
+                        <option value="calm">平静</option>
+                        <option value="angry">生气</option>
+                        <option value="surprised">惊讶</option>
+                        <option value="confused">困惑</option>
+                        <option value="shy">害羞</option>
+                        <option value="worried">担心</option>
+                        <option value="loving">喜爱</option>
+                        <option value="thinking">思考</option>
+                        <option value="sleepy">困倦</option>
+                    </select>
+                    <label>强度:</label>
+                    <input type="range" id="emotion_intensity" min="0.1" max="1.0" step="0.1" value="1.0" style="width: 30%;">
+                    <span id="emotion_intensity_value">1.0</span>
+                </div>
+
+                <!-- 语音测试 -->
+                <div style="margin: 10px 0;">
+                    <input type="text" id="voice_test_text" placeholder="输入测试文本..." style="width: 60%;" value="你好，这是语音测试。">
+                    <button onclick="testVoiceSynthesis()" style="width: 20%;">测试</button>
+                    <button onclick="synthesizeRealtime()" style="width: 15%;">实时</button>
+                </div>
+
+                <!-- 语音设置 -->
+                <div style="margin: 10px 0;">
+                    <label>
+                        <input type="checkbox" id="auto_language_detection"> 自动语言检测
+                    </label>
+                    <label>
+                        <input type="checkbox" id="auto_play_voice"> 自动播放语音
+                    </label>
+                    <label>
+                        <input type="checkbox" id="realtime_synthesis"> 实时合成
+                    </label>
+                </div>
+
+                <!-- 情感敏感度 -->
+                <div style="margin: 10px 0;">
+                    <label>情感敏感度:</label>
+                    <input type="range" id="emotion_sensitivity" min="0.1" max="2.0" step="0.1" value="1.0" style="width: 60%;">
+                    <span id="emotion_sensitivity_value">1.0</span>
+                    <button onclick="setEmotionSensitivity()" style="width: 20%;">设置</button>
+                </div>
+
+                <!-- 任务状态 -->
+                <div id="voice_task_status" style="max-height: 100px; overflow-y: auto; font-size: 11px; margin: 10px 0;"></div>
+
+                <!-- 语音统计 -->
+                <div id="voice_statistics" style="font-size: 11px; color: #666; margin: 10px 0;"></div>
+            </div>
+        </div>
+
+        <!-- 高级RAG系统 -->
+        <div class="section">
+            <div class="section-title">🧠 高级RAG系统</div>
+            <label>
+                <input type="checkbox" id="advanced_rag_enabled"> 启用高级RAG功能
+            </label>
+
+            <!-- 高级RAG系统状态 -->
+            <div id="advanced_rag_status" style="margin: 10px 0; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
+
+            <div id="advanced_rag_controls" style="display: none;">
+                <!-- 文档处理 -->
+                <div style="margin: 10px 0;">
+                    <label>高级文档处理:</label>
+                    <textarea id="advanced_doc_text" placeholder="输入文档内容..." style="width: 100%; height: 60px;"></textarea>
+                    <div style="margin: 5px 0;">
+                        <input type="text" id="advanced_doc_id" placeholder="文档ID（可选）" style="width: 40%;">
+                        <input type="text" id="advanced_image_path" placeholder="图像路径（可选）" style="width: 40%;">
+                        <button onclick="processAdvancedDocument()" style="width: 15%;">处理</button>
+                    </div>
+                </div>
+
+                <!-- 高级查询 -->
+                <div style="margin: 10px 0;">
+                    <label>高级查询:</label>
+                    <input type="text" id="advanced_query_text" placeholder="输入查询问题..." style="width: 60%;">
+                    <select id="advanced_query_type" style="width: 20%;">
+                        <option value="auto">自动</option>
+                        <option value="graph">图查询</option>
+                        <option value="reasoning">推理</option>
+                        <option value="fusion">融合</option>
+                    </select>
+                    <button onclick="executeAdvancedQuery()" style="width: 15%;">查询</button>
+                </div>
+
+                <!-- 多模态推理 -->
+                <div style="margin: 10px 0;">
+                    <label>多模态推理:</label>
+                    <input type="text" id="reasoning_query" placeholder="推理问题..." style="width: 50%;">
+                    <select id="reasoning_type" style="width: 25%;">
+                        <option value="path_based">路径推理</option>
+                        <option value="subgraph_matching">子图匹配</option>
+                        <option value="random_walk">随机游走</option>
+                    </select>
+                    <button onclick="executeMultimodalReasoning()" style="width: 20%;">推理</button>
+                </div>
+
+                <!-- 知识图谱操作 -->
+                <div style="margin: 10px 0;">
+                    <label>知识图谱:</label>
+                    <button onclick="buildKnowledgeGraph()" style="width: 20%;">构建图谱</button>
+                    <button onclick="getGraphStats()" style="width: 20%;">图谱统计</button>
+                    <button onclick="clearAdvancedCaches()" style="width: 20%;">清理缓存</button>
+                    <button onclick="visualizeGraph()" style="width: 20%;">可视化</button>
+                </div>
+
+                <!-- 向量化测试 -->
+                <div style="margin: 10px 0;">
+                    <label>向量化测试:</label>
+                    <input type="text" id="vectorize_text" placeholder="测试文本..." style="width: 50%;">
+                    <select id="fusion_strategy" style="width: 25%;">
+                        <option value="concatenate">拼接</option>
+                        <option value="average">平均</option>
+                        <option value="weighted">加权</option>
+                        <option value="attention">注意力</option>
+                    </select>
+                    <button onclick="testVectorization()" style="width: 20%;">向量化</button>
+                </div>
+
+                <!-- 高级设置 -->
+                <div style="margin: 10px 0;">
+                    <label>
+                        <input type="checkbox" id="include_reasoning"> 包含推理
+                    </label>
+                    <label>
+                        <input type="checkbox" id="enable_fusion"> 启用融合
+                    </label>
+                    <label>
+                        <input type="checkbox" id="multimodal_mode"> 多模态模式
+                    </label>
+                </div>
+
+                <!-- 结果显示 -->
+                <div id="advanced_rag_results" style="max-height: 200px; overflow-y: auto; font-size: 11px; margin: 10px 0; border: 1px solid #ddd; padding: 5px;"></div>
+
+                <!-- 系统统计 -->
+                <div id="advanced_rag_statistics" style="font-size: 11px; color: #666; margin: 10px 0;"></div>
+            </div>
+        </div>
+
+        <!-- RAG知识库管理 -->
+        <div class="section">
+            <div class="section-title">📚 知识库管理</div>
+            <label>
+                <input type="checkbox" id="rag_enabled"> 启用RAG增强对话
+            </label>
+            <div id="rag_status" style="margin: 10px 0; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
+
+            <div id="rag_controls" style="display: none;">
+                <!-- 文档上传 -->
+                <div style="margin: 10px 0;">
+                    <label>上传文档:</label>
+                    <input type="file" id="document_upload" accept=".pdf,.docx,.doc,.txt,.md" style="margin: 5px 0;">
+                    <button id="upload_btn" onclick="uploadDocument()">上传</button>
+                </div>
+
+                <!-- 上传进度 -->
+                <div id="upload_progress" style="display: none; margin: 10px 0;">
+                    <div style="background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                        <div id="progress_bar" style="height: 20px; background: #4CAF50; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <div id="progress_text" style="font-size: 12px; margin-top: 5px;"></div>
+                </div>
+
+                <!-- 知识库信息 -->
+                <div id="knowledge_base_info" style="margin: 10px 0; font-size: 12px;"></div>
+
+                <!-- 文档列表 -->
+                <div id="document_list" style="max-height: 150px; overflow-y: auto; margin: 10px 0;"></div>
+
+                <!-- 搜索测试 -->
+                <div style="margin: 10px 0;">
+                    <input type="text" id="search_query" placeholder="搜索文档内容..." style="width: 70%;">
+                    <button onclick="searchDocuments()" style="width: 25%;">搜索</button>
+                </div>
+                <div id="search_results" style="max-height: 100px; overflow-y: auto; font-size: 11px;"></div>
+            </div>
+        </div>
+
         <div class="section">
             <div class="section-title">背景设置</div>
 
@@ -2103,6 +2479,1776 @@ git lfs pull</pre>`;
                 startLipSync();
             }
         }
+
+        // ======== RAG 功能 ========
+        let ragEnabled = false;
+        let knowledgeBaseInfo = {};
+
+        // 初始化RAG功能
+        function initRAG() {
+            checkRAGStatus();
+
+            // 绑定事件
+            $('#rag_enabled').change(function() {
+                ragEnabled = $(this).is(':checked');
+                if (ragEnabled) {
+                    $('#rag_controls').show();
+                    loadKnowledgeBase();
+                } else {
+                    $('#rag_controls').hide();
+                }
+            });
+        }
+
+        // 检查RAG状态
+        async function checkRAGStatus() {
+            try {
+                const response = await fetch('/api/rag/status');
+                const data = await response.json();
+
+                if (data.available) {
+                    $('#rag_status').html('<span style="color: green;">✓ RAG功能可用</span>');
+                    knowledgeBaseInfo = data.knowledge_base_info || {};
+                    updateKnowledgeBaseDisplay();
+                } else {
+                    $('#rag_status').html('<span style="color: red;">✗ RAG功能不可用</span>');
+                    $('#rag_enabled').prop('disabled', true);
+                }
+            } catch (error) {
+                console.error('检查RAG状态失败:', error);
+                $('#rag_status').html('<span style="color: red;">✗ 无法连接RAG服务</span>');
+            }
+        }
+
+        // 上传文档
+        async function uploadDocument() {
+            const fileInput = document.getElementById('document_upload');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('请选择要上传的文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 显示进度
+            $('#upload_progress').show();
+            $('#progress_bar').css('width', '0%');
+            $('#progress_text').text('正在上传...');
+
+            try {
+                const response = await fetch('/api/rag/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    $('#progress_bar').css('width', '100%');
+                    $('#progress_text').text('上传成功！');
+
+                    // 清空文件选择
+                    fileInput.value = '';
+
+                    // 刷新知识库信息
+                    setTimeout(() => {
+                        $('#upload_progress').hide();
+                        loadKnowledgeBase();
+                    }, 1000);
+
+                    alert('文档上传成功！');
+                } else {
+                    throw new Error(data.error || '上传失败');
+                }
+            } catch (error) {
+                console.error('上传文档失败:', error);
+                $('#progress_text').text('上传失败: ' + error.message);
+                setTimeout(() => $('#upload_progress').hide(), 3000);
+            }
+        }
+
+        // 加载知识库信息
+        async function loadKnowledgeBase() {
+            try {
+                const response = await fetch('/api/rag/knowledge_base');
+                const data = await response.json();
+
+                knowledgeBaseInfo = data.knowledge_base || {};
+                updateKnowledgeBaseDisplay();
+                updateDocumentList(data.uploaded_files || []);
+
+            } catch (error) {
+                console.error('加载知识库信息失败:', error);
+            }
+        }
+
+        // 更新知识库显示
+        function updateKnowledgeBaseDisplay() {
+            const info = knowledgeBaseInfo;
+            const infoHtml = `
+                <div>📊 知识库统计:</div>
+                <div>• 文档数量: ${info.total_documents || 0}</div>
+                <div>• 文本块数: ${info.total_chunks || 0}</div>
+                <div>• 源文件: ${(info.source_files || []).length}</div>
+            `;
+            $('#knowledge_base_info').html(infoHtml);
+        }
+
+        // 更新文档列表
+        function updateDocumentList(files) {
+            let listHtml = '<div style="font-weight: bold; margin-bottom: 5px;">已上传文档:</div>';
+
+            if (files.length === 0) {
+                listHtml += '<div style="color: #666;">暂无文档</div>';
+            } else {
+                files.forEach(file => {
+                    listHtml += `
+                        <div style="border: 1px solid #ddd; padding: 5px; margin: 3px 0; border-radius: 3px; font-size: 11px;">
+                            <div style="font-weight: bold;">${file.original_filename || file.filename}</div>
+                            <div>大小: ${file.file_size_mb}MB | 类型: ${file.file_type}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            $('#document_list').html(listHtml);
+        }
+
+        // 搜索文档
+        async function searchDocuments() {
+            const query = $('#search_query').val().trim();
+            if (!query) {
+                alert('请输入搜索内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/rag/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query, k: 3 })
+                });
+
+                const data = await response.json();
+
+                let resultsHtml = `<div style="font-weight: bold;">搜索结果 (${data.count}):</div>`;
+
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach((result, index) => {
+                        resultsHtml += `
+                            <div style="border: 1px solid #ddd; padding: 5px; margin: 3px 0; border-radius: 3px;">
+                                <div style="font-weight: bold; font-size: 10px;">来源: ${result.source}</div>
+                                <div style="font-size: 10px;">${result.content.substring(0, 100)}...</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultsHtml += '<div style="color: #666;">未找到相关内容</div>';
+                }
+
+                $('#search_results').html(resultsHtml);
+
+            } catch (error) {
+                console.error('搜索失败:', error);
+                $('#search_results').html('<div style="color: red;">搜索失败</div>');
+            }
+        }
+
+        // 修改发送消息函数以支持RAG
+        function sendMessage() {
+            const userInput = $('#user_input').val().trim();
+            if (!userInput) return;
+
+            const modelName = $('#llm_model').val();
+            const temperature = parseFloat($('#temperature').val());
+            const topP = parseFloat($('#top_p').val());
+            const rolePrompt = $('#role_prompt').val();
+
+            // 清空输入框
+            $('#user_input').val('');
+
+            // 显示用户消息
+            appendMessage('用户', userInput);
+
+            // 准备请求数据
+            const requestData = {
+                session_id: currentSessionId,
+                prompt: userInput,
+                role_prompt: rolePrompt,
+                model_name: modelName,
+                temperature: temperature,
+                top_p: topP,
+                use_rag: ragEnabled
+            };
+
+            // 选择API端点
+            const endpoint = ragEnabled ? '/rag_generate' : '/generate';
+
+            // 发送请求
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.body.getReader();
+            })
+            .then(reader => {
+                let assistantMessage = '';
+                let retrievedDocs = [];
+
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) return;
+
+                        const chunk = new TextDecoder().decode(value);
+                        const lines = chunk.split('\n');
+
+                        lines.forEach(line => {
+                            if (line.trim()) {
+                                try {
+                                    const data = JSON.parse(line);
+
+                                    if (data.type === 'retrieved_docs') {
+                                        // 显示检索到的文档
+                                        retrievedDocs = data.docs;
+                                        if (retrievedDocs.length > 0) {
+                                            let docsHtml = '<div style="background: #f0f8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 11px;">';
+                                            docsHtml += '<strong>📚 参考文档:</strong><br>';
+                                            retrievedDocs.forEach(doc => {
+                                                docsHtml += `• ${doc.source}: ${doc.content}<br>`;
+                                            });
+                                            docsHtml += '</div>';
+                                            $('#text_talk').append(docsHtml);
+                                            $('#text_talk').scrollTop($('#text_talk')[0].scrollHeight);
+                                        }
+                                    } else if (data.type === 'emotion_analysis') {
+                                        // 处理情感分析结果
+                                        handleEmotionAnalysis(data.emotion_data);
+                                    } else if (data.chunk && !data.done) {
+                                        assistantMessage += data.chunk;
+                                        updateLastMessage('AI助手', assistantMessage);
+                                    } else if (data.done) {
+                                        if (data.audio_url) {
+                                            currentAudioUrl = data.audio_url;
+                                            $('#play_audio').prop('disabled', false);
+                                        }
+
+                                        // 处理情感分析结果
+                                        if (data.user_emotion) {
+                                            handleEmotionAnalysis(data.user_emotion);
+                                        }
+                                        if (data.ai_emotion) {
+                                            handleEmotionAnalysis(data.ai_emotion);
+                                        }
+
+                                        // 应用Live2D参数
+                                        if (data.live2d_parameters) {
+                                            applyLive2DParameters(data.live2d_parameters);
+                                        }
+
+                                        // 显示RAG使用信息
+                                        if (data.used_rag && data.retrieved_docs_count > 0) {
+                                            const ragInfo = `\n<small style="color: #666;">[使用了 ${data.retrieved_docs_count} 个文档片段]</small>`;
+                                            updateLastMessage('AI助手', assistantMessage + ragInfo);
+                                        }
+
+                                        return;
+                                    }
+                                } catch (e) {
+                                    console.error('解析响应失败:', e);
+                                }
+                            }
+                        });
+
+                        return readStream();
+                    });
+                }
+
+                // 开始显示助手消息
+                appendMessage('AI助手', '');
+                return readStream();
+            })
+            .catch(error => {
+                console.error('发送消息失败:', error);
+                appendMessage('系统', '发送消息失败: ' + error.message);
+            });
+        }
+
+        // ======== 高级情感系统功能 ========
+        let advancedEmotionEnabled = true;
+        let currentEmotionState = {
+            emotion_type: 'neutral',
+            intensity: 0.1,
+            is_transitioning: false
+        };
+
+        // 初始化高级情感系统
+        function initAdvancedEmotionSystem() {
+            checkEmotionSystemStatus();
+
+            // 绑定事件
+            $('#advanced_emotion_enabled').change(function() {
+                advancedEmotionEnabled = $(this).is(':checked');
+                if (advancedEmotionEnabled) {
+                    startEmotionParameterUpdates();
+                } else {
+                    stopEmotionParameterUpdates();
+                }
+            });
+
+            // 启动参数更新循环
+            if (advancedEmotionEnabled) {
+                startEmotionParameterUpdates();
+            }
+        }
+
+        // 检查情感系统状态
+        async function checkEmotionSystemStatus() {
+            try {
+                const response = await fetch('/api/emotion/status');
+                const data = await response.json();
+
+                if (data.available) {
+                    $('#emotion_system_status').html('<span style="color: green;">✓ 高级情感系统可用</span>');
+                    updateEmotionDisplay(data.status.current_emotion);
+                } else {
+                    $('#emotion_system_status').html('<span style="color: red;">✗ 高级情感系统不可用</span>');
+                    $('#advanced_emotion_enabled').prop('disabled', true);
+                }
+            } catch (error) {
+                console.error('检查情感系统状态失败:', error);
+                $('#emotion_system_status').html('<span style="color: red;">✗ 无法连接情感系统</span>');
+            }
+        }
+
+        // 更新情感状态显示
+        function updateEmotionDisplay(emotionState) {
+            if (!emotionState) return;
+
+            currentEmotionState = emotionState;
+
+            $('#emotion_type_display').text(`${emotionState.emotion_label || emotionState.emotion_type}`);
+            $('#emotion_intensity_display').text(`强度: ${emotionState.intensity_label || '未知'} (${(emotionState.intensity * 100).toFixed(0)}%)`);
+
+            if (emotionState.is_transitioning && emotionState.transition_info) {
+                const transition = emotionState.transition_info;
+                $('#emotion_transition_display').text(`转换中: ${transition.from_emotion} → ${transition.to_emotion} (${(transition.progress * 100).toFixed(0)}%)`);
+            } else {
+                $('#emotion_transition_display').text('');
+            }
+        }
+
+        // 手动设置情感
+        async function setManualEmotion() {
+            if (!advancedEmotionEnabled) return;
+
+            const emotionType = $('#manual_emotion_type').val();
+            const intensity = parseFloat($('#manual_emotion_intensity').val());
+
+            try {
+                const response = await fetch('/api/emotion/trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        emotion_type: emotionType,
+                        intensity: intensity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateEmotionDisplay(data.current_state);
+                    // 应用Live2D参数
+                    if (data.live2d_parameters) {
+                        applyLive2DParameters(data.live2d_parameters);
+                    }
+                } else {
+                    console.error('设置情感失败:', data.error);
+                }
+
+            } catch (error) {
+                console.error('设置情感失败:', error);
+            }
+        }
+
+        // 触发手势
+        async function triggerGesture() {
+            if (!advancedEmotionEnabled) return;
+
+            const gestureName = $('#gesture_type').val();
+
+            try {
+                const response = await fetch('/api/emotion/gesture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gesture_name: gestureName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`触发手势成功: ${gestureName}`);
+                } else {
+                    console.error('触发手势失败:', data.error);
+                }
+
+            } catch (error) {
+                console.error('触发手势失败:', error);
+            }
+        }
+
+        // 显示情感历史
+        async function showEmotionHistory() {
+            try {
+                const response = await fetch('/api/emotion/history?limit=10');
+                const data = await response.json();
+
+                if (data.success) {
+                    let historyHtml = '<div style="font-weight: bold; margin-bottom: 5px;">情感历史:</div>';
+
+                    data.history.forEach(item => {
+                        const time = new Date(item.timestamp * 1000).toLocaleTimeString();
+                        historyHtml += `
+                            <div style="border: 1px solid #ddd; padding: 3px; margin: 2px 0; border-radius: 3px;">
+                                <div style="font-size: 10px; color: #666;">${time}</div>
+                                <div>${item.emotion_label} - ${(item.intensity * 100).toFixed(0)}%</div>
+                            </div>
+                        `;
+                    });
+
+                    $('#emotion_history_display').html(historyHtml).show();
+                } else {
+                    console.error('获取情感历史失败:', data.error);
+                }
+
+            } catch (error) {
+                console.error('获取情感历史失败:', error);
+            }
+        }
+
+        // 重置情感状态
+        async function resetEmotion() {
+            try {
+                const response = await fetch('/api/emotion/reset', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateEmotionDisplay(data.current_state);
+                    console.log('情感状态已重置');
+                } else {
+                    console.error('重置情感状态失败:', data.error);
+                }
+
+            } catch (error) {
+                console.error('重置情感状态失败:', error);
+            }
+        }
+
+        // 应用Live2D参数
+        function applyLive2DParameters(parameters) {
+            if (!currentModel) return;
+
+            try {
+                for (const [paramName, value] of Object.entries(parameters)) {
+                    if (currentModel.getParameterIndex && currentModel.setParameterValueByIndex) {
+                        const paramIndex = currentModel.getParameterIndex(paramName);
+                        if (paramIndex >= 0) {
+                            currentModel.setParameterValueByIndex(paramIndex, value);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('应用Live2D参数失败:', error);
+            }
+        }
+
+        // 启动情感参数更新循环
+        function startEmotionParameterUpdates() {
+            if (window.emotionUpdateInterval) {
+                clearInterval(window.emotionUpdateInterval);
+            }
+
+            window.emotionUpdateInterval = setInterval(async () => {
+                if (!advancedEmotionEnabled) return;
+
+                try {
+                    const response = await fetch('/api/emotion/parameters');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        applyLive2DParameters(data.parameters);
+                    }
+                } catch (error) {
+                    // 静默处理错误，避免控制台刷屏
+                }
+            }, 100); // 10 FPS更新频率
+        }
+
+        // 停止情感参数更新
+        function stopEmotionParameterUpdates() {
+            if (window.emotionUpdateInterval) {
+                clearInterval(window.emotionUpdateInterval);
+                window.emotionUpdateInterval = null;
+            }
+        }
+
+        // 处理情感分析结果
+        function handleEmotionAnalysis(emotionData) {
+            if (!advancedEmotionEnabled || !emotionData) return;
+
+            // 更新情感显示
+            if (emotionData.current_state) {
+                updateEmotionDisplay(emotionData.current_state);
+            }
+
+            // 显示情感分析结果
+            if (emotionData.emotion_analysis) {
+                const analysis = emotionData.emotion_analysis;
+                console.log(`情感分析: ${analysis.emotion_label}, 强度: ${analysis.intensity_label}`);
+            }
+        }
+
+        // ======== 多模态AI系统功能 ========
+        let multimodalEnabled = false;
+        let uploadedImages = {};
+
+        // 初始化多模态系统
+        function initMultimodalSystem() {
+            checkMultimodalStatus();
+
+            // 绑定事件
+            $('#multimodal_enabled').change(function() {
+                multimodalEnabled = $(this).is(':checked');
+                if (multimodalEnabled) {
+                    $('#multimodal_controls').show();
+                    loadUploadedImages();
+                } else {
+                    $('#multimodal_controls').hide();
+                }
+            });
+        }
+
+        // 检查多模态系统状态
+        async function checkMultimodalStatus() {
+            try {
+                const response = await fetch('/api/multimodal/status');
+                const data = await response.json();
+
+                if (data.available) {
+                    $('#multimodal_status').html('<span style="color: green;">✓ 多模态AI系统可用</span>');
+                } else {
+                    $('#multimodal_status').html('<span style="color: red;">✗ 多模态AI系统不可用</span>');
+                    $('#multimodal_enabled').prop('disabled', true);
+                }
+            } catch (error) {
+                console.error('检查多模态系统状态失败:', error);
+                $('#multimodal_status').html('<span style="color: red;">✗ 无法连接多模态系统</span>');
+            }
+        }
+
+        // 上传图像
+        async function uploadImage() {
+            const fileInput = document.getElementById('image_upload');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('请选择要上传的图像文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('add_to_knowledge_base', 'true');
+
+            // 显示进度
+            $('#image_upload_progress').show();
+            $('#image_progress_bar').css('width', '0%');
+            $('#image_progress_text').text('正在上传...');
+
+            try {
+                const response = await fetch('/api/multimodal/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    $('#image_progress_bar').css('width', '100%');
+                    $('#image_progress_text').text('上传成功！');
+
+                    // 清空文件选择
+                    fileInput.value = '';
+
+                    // 刷新图像列表
+                    setTimeout(() => {
+                        $('#image_upload_progress').hide();
+                        loadUploadedImages();
+                    }, 1000);
+
+                    alert('图像上传成功！');
+                } else {
+                    throw new Error(data.error || '上传失败');
+                }
+            } catch (error) {
+                console.error('上传图像失败:', error);
+                $('#image_progress_text').text('上传失败: ' + error.message);
+                setTimeout(() => $('#image_upload_progress').hide(), 3000);
+            }
+        }
+
+        // 加载已上传的图像
+        async function loadUploadedImages() {
+            try {
+                const response = await fetch('/api/multimodal/images');
+                const data = await response.json();
+
+                if (data.success) {
+                    uploadedImages = {};
+                    let imagesHtml = '<div style="font-weight: bold; margin-bottom: 5px;">已上传图像:</div>';
+
+                    if (data.images.length === 0) {
+                        imagesHtml += '<div style="color: #666;">暂无图像</div>';
+                    } else {
+                        data.images.forEach(image => {
+                            uploadedImages[image.image_id] = image;
+                            imagesHtml += `
+                                <div style="border: 1px solid #ddd; padding: 5px; margin: 3px 0; border-radius: 3px; font-size: 11px;">
+                                    <div style="font-weight: bold;">${image.filename}</div>
+                                    <div>${image.description.substring(0, 50)}...</div>
+                                    <div style="color: #666;">${image.analysis_summary}</div>
+                                    <button onclick="deleteImage('${image.image_id}')" style="font-size: 10px; margin-top: 3px;">删除</button>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    $('#uploaded_images').html(imagesHtml);
+                    updateImageSelectors(data.images);
+                }
+
+            } catch (error) {
+                console.error('加载图像列表失败:', error);
+            }
+        }
+
+        // 更新图像选择器
+        function updateImageSelectors(images) {
+            const selectors = ['#selected_image_id', '#compare_image1', '#compare_image2'];
+
+            selectors.forEach(selector => {
+                const $select = $(selector);
+                $select.empty();
+                $select.append('<option value="">请选择图像</option>');
+
+                images.forEach(image => {
+                    $select.append(`<option value="${image.image_id}">${image.filename}</option>`);
+                });
+            });
+        }
+
+        // 分析选中的图像
+        async function analyzeSelectedImage() {
+            const imageId = $('#selected_image_id').val();
+            if (!imageId) {
+                alert('请先选择一个图像');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/multimodal/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_id: imageId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const image = uploadedImages[imageId];
+                    let analysisHtml = `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                            <h4>${image.filename} 分析结果</h4>
+                            <p><strong>描述:</strong> ${data.description || '无描述'}</p>
+                    `;
+
+                    if (data.analysis && data.analysis.success) {
+                        const analysis = data.analysis;
+                        if (analysis.objects && analysis.objects.length > 0) {
+                            analysisHtml += `<p><strong>识别物体:</strong> ${analysis.objects.join(', ')}</p>`;
+                        }
+                        if (analysis.emotions && analysis.emotions.length > 0) {
+                            analysisHtml += `<p><strong>情感:</strong> ${analysis.emotions.join(', ')}</p>`;
+                        }
+                        if (analysis.scene) {
+                            analysisHtml += `<p><strong>场景:</strong> ${analysis.scene}</p>`;
+                        }
+                    }
+
+                    analysisHtml += '</div>';
+
+                    // 显示在对话框中
+                    appendMessage('系统', analysisHtml);
+                } else {
+                    alert('图像分析失败: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('图像分析失败:', error);
+                alert('图像分析失败');
+            }
+        }
+
+        // 对图像提问
+        async function askImageQuestion() {
+            const imageId = $('#selected_image_id').val();
+            const question = $('#image_question').val().trim();
+
+            if (!imageId) {
+                alert('请先选择一个图像');
+                return;
+            }
+
+            if (!question) {
+                alert('请输入问题');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/multimodal/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_id: imageId,
+                        question: question
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const image = uploadedImages[imageId];
+                    const questionHtml = `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                            <h4>图像问答</h4>
+                            <p><strong>图像:</strong> ${image.filename}</p>
+                            <p><strong>问题:</strong> ${question}</p>
+                            <p><strong>回答:</strong> ${data.answer}</p>
+                        </div>
+                    `;
+
+                    // 显示在对话框中
+                    appendMessage('系统', questionHtml);
+
+                    // 清空问题输入
+                    $('#image_question').val('');
+                } else {
+                    alert('图像问答失败: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('图像问答失败:', error);
+                alert('图像问答失败');
+            }
+        }
+
+        // 多模态搜索
+        async function searchMultimodal() {
+            const query = $('#multimodal_search_query').val().trim();
+            const searchType = $('#search_type').val();
+
+            if (!query) {
+                alert('请输入搜索内容');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/multimodal/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        search_type: searchType
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let resultsHtml = `<div style="font-weight: bold; margin-bottom: 5px;">搜索结果 (${data.result_count}条):</div>`;
+
+                    if (data.results.length === 0) {
+                        resultsHtml += '<div style="color: #666;">未找到相关内容</div>';
+                    } else {
+                        data.results.forEach((result, index) => {
+                            const typeLabel = result.type === 'image' ? '图像' : result.type === 'image_text' ? '图文' : '文本';
+                            resultsHtml += `
+                                <div style="border: 1px solid #ddd; padding: 5px; margin: 3px 0; border-radius: 3px;">
+                                    <div style="font-weight: bold; color: #333;">[${typeLabel}] ${result.metadata.filename || '未知文件'}</div>
+                                    <div style="font-size: 10px;">${result.content.substring(0, 100)}...</div>
+                                    <div style="font-size: 9px; color: #666;">相关度: ${(result.relevance_score * 100).toFixed(0)}%</div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    $('#multimodal_search_results').html(resultsHtml);
+
+                    // 显示AI回答
+                    if (data.response) {
+                        const responseHtml = `
+                            <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                                <h4>多模态搜索回答</h4>
+                                <p><strong>问题:</strong> ${query}</p>
+                                <p><strong>回答:</strong> ${data.response}</p>
+                            </div>
+                        `;
+                        appendMessage('系统', responseHtml);
+                    }
+                } else {
+                    alert('搜索失败: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('多模态搜索失败:', error);
+                alert('搜索失败');
+            }
+        }
+
+        // 比较图像
+        async function compareImages() {
+            const imageId1 = $('#compare_image1').val();
+            const imageId2 = $('#compare_image2').val();
+
+            if (!imageId1 || !imageId2) {
+                alert('请选择两个要比较的图像');
+                return;
+            }
+
+            if (imageId1 === imageId2) {
+                alert('请选择不同的图像进行比较');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/multimodal/compare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_id1: imageId1,
+                        image_id2: imageId2,
+                        comparison_aspect: '整体相似性'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const image1 = uploadedImages[imageId1];
+                    const image2 = uploadedImages[imageId2];
+                    const similarity = (data.overall_similarity * 100).toFixed(1);
+
+                    let comparisonHtml = `
+                        <div style="border: 1px solid #ddd; padding: 8px; margin: 5px 0; border-radius: 4px;">
+                            <div style="font-weight: bold;">图像比较结果</div>
+                            <div style="font-size: 11px;">
+                                <div>图像1: ${image1.filename}</div>
+                                <div>图像2: ${image2.filename}</div>
+                                <div style="color: #333; margin-top: 5px;">
+                                    相似度: <span style="font-weight: bold; color: ${similarity > 70 ? 'green' : similarity > 40 ? 'orange' : 'red'};">${similarity}%</span>
+                                </div>
+                    `;
+
+                    if (data.vlm_comparison && data.vlm_comparison.comparison_result) {
+                        comparisonHtml += `<div style="margin-top: 5px;">分析: ${data.vlm_comparison.comparison_result}</div>`;
+                    }
+
+                    comparisonHtml += '</div></div>';
+
+                    $('#image_comparison_result').html(comparisonHtml);
+                } else {
+                    alert('图像比较失败: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('图像比较失败:', error);
+                alert('图像比较失败');
+            }
+        }
+
+        // 删除图像
+        async function deleteImage(imageId) {
+            if (!confirm('确定要删除这张图像吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/multimodal/images/${imageId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('图像删除成功');
+                    loadUploadedImages();
+                } else {
+                    alert('删除失败: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('删除图像失败:', error);
+                alert('删除失败');
+            }
+        }
+
+        // ======== 语音情感系统功能 ========
+        let voiceEmotionEnabled = false;
+        let voiceTasks = {};
+
+        // 初始化语音情感系统
+        function initVoiceEmotionSystem() {
+            checkVoiceEmotionStatus();
+
+            // 绑定事件
+            $('#voice_emotion_enabled').change(function() {
+                voiceEmotionEnabled = $(this).is(':checked');
+                if (voiceEmotionEnabled) {
+                    $('#voice_emotion_controls').show();
+                    loadVoiceSettings();
+                } else {
+                    $('#voice_emotion_controls').hide();
+                }
+            });
+
+            // 绑定滑块事件
+            $('#emotion_intensity').on('input', function() {
+                $('#emotion_intensity_value').text($(this).val());
+            });
+
+            $('#emotion_sensitivity').on('input', function() {
+                $('#emotion_sensitivity_value').text($(this).val());
+            });
+        }
+
+        // 检查语音情感系统状态
+        async function checkVoiceEmotionStatus() {
+            try {
+                const response = await fetch('/api/voice/status');
+                const data = await response.json();
+
+                if (data.available) {
+                    $('#voice_emotion_status').html('<span style="color: green;">✓ 语音情感系统可用</span>');
+                    updateVoiceStatistics(data.status);
+                } else {
+                    $('#voice_emotion_status').html('<span style="color: red;">✗ 语音情感系统不可用</span>');
+                    $('#voice_emotion_enabled').prop('disabled', true);
+                }
+            } catch (error) {
+                console.error('检查语音情感系统状态失败:', error);
+                $('#voice_emotion_status').html('<span style="color: red;">✗ 无法连接语音情感系统</span>');
+            }
+        }
+
+        // 加载语音设置
+        async function loadVoiceSettings() {
+            try {
+                // 加载可用语音
+                const voicesResponse = await fetch('/api/voice/voices');
+                const voicesData = await voicesResponse.json();
+
+                // 加载可用风格
+                const stylesResponse = await fetch('/api/voice/styles');
+                const stylesData = await stylesResponse.json();
+
+                // 更新界面
+                updateVoiceSelectors(voicesData, stylesData);
+
+            } catch (error) {
+                console.error('加载语音设置失败:', error);
+            }
+        }
+
+        // 更新语音选择器
+        function updateVoiceSelectors(voicesData, stylesData) {
+            // 更新风格选择器
+            const $styleSelect = $('#voice_style_select');
+            $styleSelect.empty();
+
+            if (stylesData.styles) {
+                Object.keys(stylesData.styles).forEach(styleName => {
+                    const style = stylesData.styles[styleName];
+                    $styleSelect.append(`<option value="${styleName}">${style.name}</option>`);
+                });
+            }
+
+            // 设置当前风格
+            if (stylesData.current_style) {
+                $styleSelect.val(stylesData.current_style);
+            }
+        }
+
+        // 设置语音风格
+        async function setVoiceStyle() {
+            const styleName = $('#voice_style_select').val();
+
+            try {
+                const response = await fetch('/api/voice/style', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        style_name: styleName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('语音风格设置成功: ' + data.description, 'success');
+                } else {
+                    showMessage('语音风格设置失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('设置语音风格失败:', error);
+                showMessage('设置语音风格失败', 'error');
+            }
+        }
+
+        // 设置语音角色
+        async function setVoiceCharacter() {
+            const voiceName = $('#voice_character_select').val();
+            const language = $('#voice_language_select').val();
+
+            try {
+                const response = await fetch('/api/voice/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        voice_name: voiceName,
+                        language: language
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('语音角色设置成功', 'success');
+                } else {
+                    showMessage('语音角色设置失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('设置语音角色失败:', error);
+                showMessage('设置语音角色失败', 'error');
+            }
+        }
+
+        // 设置情感敏感度
+        async function setEmotionSensitivity() {
+            const sensitivity = parseFloat($('#emotion_sensitivity').val());
+
+            try {
+                const response = await fetch('/api/voice/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        emotion_sensitivity: sensitivity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('情感敏感度设置成功', 'success');
+                } else {
+                    showMessage('情感敏感度设置失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('设置情感敏感度失败:', error);
+                showMessage('设置情感敏感度失败', 'error');
+            }
+        }
+
+        // 测试语音合成
+        async function testVoiceSynthesis() {
+            const text = $('#voice_test_text').val().trim();
+            const emotion = $('#emotion_type_select').val();
+            const intensity = parseFloat($('#emotion_intensity').val());
+
+            if (!text) {
+                showMessage('请输入测试文本', 'warning');
+                return;
+            }
+
+            try {
+                showMessage('正在合成语音...', 'info');
+
+                const response = await fetch('/api/voice/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        emotion: emotion,
+                        intensity: intensity,
+                        realtime: false,
+                        auto_play: $('#auto_play_voice').is(':checked')
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('语音合成成功', 'success');
+
+                    // 显示合成信息
+                    const infoHtml = `
+                        <div style="border: 1px solid #ddd; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 11px;">
+                            <div><strong>语音合成完成</strong></div>
+                            <div>情感: ${data.emotion} (强度: ${data.intensity})</div>
+                            <div>语音: ${data.voice_name} (${data.language})</div>
+                            <div>时长: ${data.duration ? data.duration.toFixed(1) + 's' : '未知'}</div>
+                        </div>
+                    `;
+
+                    $('#voice_task_status').prepend(infoHtml);
+                } else {
+                    showMessage('语音合成失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('语音合成测试失败:', error);
+                showMessage('语音合成测试失败', 'error');
+            }
+        }
+
+        // 实时语音合成
+        async function synthesizeRealtime() {
+            const text = $('#voice_test_text').val().trim();
+            const emotion = $('#emotion_type_select').val();
+            const intensity = parseFloat($('#emotion_intensity').val());
+
+            if (!text) {
+                showMessage('请输入测试文本', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/voice/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        emotion: emotion,
+                        intensity: intensity,
+                        realtime: true,
+                        auto_play: $('#auto_play_voice').is(':checked')
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('实时合成任务已提交', 'success');
+
+                    // 添加任务到监控列表
+                    voiceTasks[data.task_id] = {
+                        text: text,
+                        emotion: emotion,
+                        intensity: intensity,
+                        status: 'pending',
+                        created_at: new Date()
+                    };
+
+                    // 开始监控任务
+                    monitorVoiceTask(data.task_id);
+
+                    // 更新任务显示
+                    updateVoiceTaskDisplay();
+                } else {
+                    showMessage('实时合成失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('实时语音合成失败:', error);
+                showMessage('实时语音合成失败', 'error');
+            }
+        }
+
+        // 监控语音任务
+        async function monitorVoiceTask(taskId) {
+            const maxAttempts = 30; // 最多监控30次
+            let attempts = 0;
+
+            const checkTask = async () => {
+                try {
+                    const response = await fetch(`/api/voice/task/${taskId}`);
+                    const data = await response.json();
+
+                    if (voiceTasks[taskId]) {
+                        voiceTasks[taskId].status = data.status;
+
+                        if (data.status === 'completed') {
+                            voiceTasks[taskId].result = data.result;
+                            showMessage('语音合成完成', 'success');
+                            updateVoiceTaskDisplay();
+                            return;
+                        } else if (data.status === 'failed') {
+                            voiceTasks[taskId].error = data.error;
+                            showMessage('语音合成失败: ' + data.error, 'error');
+                            updateVoiceTaskDisplay();
+                            return;
+                        }
+                    }
+
+                    attempts++;
+                    if (attempts < maxAttempts && data.status === 'processing') {
+                        setTimeout(checkTask, 1000); // 1秒后再次检查
+                    } else if (attempts >= maxAttempts) {
+                        showMessage('任务监控超时', 'warning');
+                    }
+
+                    updateVoiceTaskDisplay();
+
+                } catch (error) {
+                    console.error('监控任务失败:', error);
+                }
+            };
+
+            checkTask();
+        }
+
+        // 更新任务显示
+        function updateVoiceTaskDisplay() {
+            let tasksHtml = '<div style="font-weight: bold; margin-bottom: 5px;">语音任务状态:</div>';
+
+            const taskIds = Object.keys(voiceTasks).slice(-5); // 只显示最近5个任务
+
+            if (taskIds.length === 0) {
+                tasksHtml += '<div style="color: #666;">暂无任务</div>';
+            } else {
+                taskIds.forEach(taskId => {
+                    const task = voiceTasks[taskId];
+                    const statusColor = {
+                        'pending': '#orange',
+                        'processing': '#blue',
+                        'completed': '#green',
+                        'failed': '#red',
+                        'cancelled': '#gray'
+                    }[task.status] || '#black';
+
+                    tasksHtml += `
+                        <div style="border: 1px solid #ddd; padding: 3px; margin: 2px 0; border-radius: 3px;">
+                            <div style="font-size: 10px;">
+                                <span style="color: ${statusColor};">●</span> ${task.text.substring(0, 20)}...
+                                <span style="float: right;">${task.status}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            $('#voice_task_status').html(tasksHtml);
+        }
+
+        // 更新语音统计信息
+        function updateVoiceStatistics(status) {
+            if (!status) return;
+
+            let statsHtml = '<div style="font-weight: bold;">系统统计:</div>';
+
+            if (status.synthesizer_stats) {
+                const stats = status.synthesizer_stats;
+                statsHtml += `
+                    <div>缓存: ${stats.cache_size} 项</div>
+                    <div>当前语音: ${stats.current_voice}</div>
+                    <div>当前情感: ${stats.current_emotion}</div>
+                `;
+            }
+
+            if (status.realtime_processor) {
+                const processor = status.realtime_processor;
+                statsHtml += `
+                    <div>队列任务: ${processor.pending_tasks}</div>
+                    <div>处理中: ${processor.processing_tasks}</div>
+                    <div>已完成: ${processor.completed_tasks}</div>
+                `;
+            }
+
+            $('#voice_statistics').html(statsHtml);
+        }
+
+        // 显示消息提示
+        function showMessage(message, type = 'info') {
+            const colors = {
+                'success': '#4CAF50',
+                'error': '#f44336',
+                'warning': '#ff9800',
+                'info': '#2196F3'
+            };
+
+            const messageHtml = `
+                <div style="background: ${colors[type]}; color: white; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                    ${message}
+                </div>
+            `;
+
+            // 添加到对话框
+            appendMessage('系统', messageHtml);
+        }
+
+        // ======== 高级RAG系统功能 ========
+        let advancedRAGEnabled = false;
+
+        // 初始化高级RAG系统
+        function initAdvancedRAGSystem() {
+            checkAdvancedRAGStatus();
+
+            // 绑定事件
+            $('#advanced_rag_enabled').change(function() {
+                advancedRAGEnabled = $(this).is(':checked');
+                if (advancedRAGEnabled) {
+                    $('#advanced_rag_controls').show();
+                    loadAdvancedRAGSettings();
+                } else {
+                    $('#advanced_rag_controls').hide();
+                }
+            });
+        }
+
+        // 检查高级RAG系统状态
+        async function checkAdvancedRAGStatus() {
+            try {
+                const response = await fetch('/api/advanced-rag/status');
+                const data = await response.json();
+
+                if (data.available) {
+                    $('#advanced_rag_status').html('<span style="color: green;">✓ 高级RAG系统可用</span>');
+                    updateAdvancedRAGStatistics(data.status);
+                } else {
+                    $('#advanced_rag_status').html('<span style="color: red;">✗ 高级RAG系统不可用</span>');
+                    $('#advanced_rag_enabled').prop('disabled', true);
+                }
+            } catch (error) {
+                console.error('检查高级RAG系统状态失败:', error);
+                $('#advanced_rag_status').html('<span style="color: red;">✗ 无法连接高级RAG系统</span>');
+            }
+        }
+
+        // 加载高级RAG设置
+        async function loadAdvancedRAGSettings() {
+            try {
+                // 设置默认值
+                $('#include_reasoning').prop('checked', true);
+                $('#enable_fusion').prop('checked', true);
+                $('#multimodal_mode').prop('checked', false);
+
+            } catch (error) {
+                console.error('加载高级RAG设置失败:', error);
+            }
+        }
+
+        // 处理高级文档
+        async function processAdvancedDocument() {
+            const text = $('#advanced_doc_text').val().trim();
+            const docId = $('#advanced_doc_id').val().trim();
+            const imagePath = $('#advanced_image_path').val().trim();
+
+            if (!text) {
+                showAdvancedRAGMessage('请输入文档内容', 'warning');
+                return;
+            }
+
+            try {
+                showAdvancedRAGMessage('正在处理文档...', 'info');
+
+                const response = await fetch('/api/advanced-rag/process-document', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        doc_id: docId || undefined,
+                        image_path: imagePath || undefined,
+                        metadata: {
+                            processed_at: new Date().toISOString(),
+                            source: 'web_interface'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('文档处理成功', 'success');
+                    displayAdvancedRAGResult('文档处理', data);
+
+                    // 清空输入
+                    $('#advanced_doc_text').val('');
+                    $('#advanced_doc_id').val('');
+                    $('#advanced_image_path').val('');
+                } else {
+                    showAdvancedRAGMessage('文档处理失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('文档处理失败:', error);
+                showAdvancedRAGMessage('文档处理失败', 'error');
+            }
+        }
+
+        // 执行高级查询
+        async function executeAdvancedQuery() {
+            const query = $('#advanced_query_text').val().trim();
+            const queryType = $('#advanced_query_type').val();
+            const includeReasoning = $('#include_reasoning').is(':checked');
+
+            if (!query) {
+                showAdvancedRAGMessage('请输入查询问题', 'warning');
+                return;
+            }
+
+            try {
+                showAdvancedRAGMessage('正在执行高级查询...', 'info');
+
+                const response = await fetch('/api/advanced-rag/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        query_type: queryType,
+                        max_results: 10,
+                        include_reasoning: includeReasoning
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('查询执行成功', 'success');
+                    displayAdvancedRAGResult('高级查询', data);
+
+                    // 显示融合答案
+                    if (data.fused_answer) {
+                        appendMessage('AI助手', data.fused_answer);
+                    }
+                } else {
+                    showAdvancedRAGMessage('查询执行失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('高级查询失败:', error);
+                showAdvancedRAGMessage('高级查询失败', 'error');
+            }
+        }
+
+        // 执行多模态推理
+        async function executeMultimodalReasoning() {
+            const query = $('#reasoning_query').val().trim();
+            const reasoningType = $('#reasoning_type').val();
+            const imagePath = $('#advanced_image_path').val().trim();
+
+            if (!query) {
+                showAdvancedRAGMessage('请输入推理问题', 'warning');
+                return;
+            }
+
+            try {
+                showAdvancedRAGMessage('正在执行多模态推理...', 'info');
+
+                const response = await fetch('/api/advanced-rag/reasoning', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        reasoning_type: reasoningType,
+                        image_path: imagePath || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('推理执行成功', 'success');
+                    displayAdvancedRAGResult('多模态推理', data);
+
+                    // 显示推理结果
+                    if (data.reasoning_result && data.reasoning_result.answer) {
+                        appendMessage('AI推理', data.reasoning_result.answer);
+                    }
+                } else {
+                    showAdvancedRAGMessage('推理执行失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('多模态推理失败:', error);
+                showAdvancedRAGMessage('多模态推理失败', 'error');
+            }
+        }
+
+        // 构建知识图谱
+        async function buildKnowledgeGraph() {
+            const text = $('#advanced_doc_text').val().trim();
+            const docId = $('#advanced_doc_id').val().trim();
+
+            if (!text) {
+                showAdvancedRAGMessage('请输入文档内容来构建图谱', 'warning');
+                return;
+            }
+
+            try {
+                showAdvancedRAGMessage('正在构建知识图谱...', 'info');
+
+                const response = await fetch('/api/advanced-rag/build-graph', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        doc_id: docId || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('知识图谱构建成功', 'success');
+                    displayAdvancedRAGResult('知识图谱构建', data);
+                } else {
+                    showAdvancedRAGMessage('知识图谱构建失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('知识图谱构建失败:', error);
+                showAdvancedRAGMessage('知识图谱构建失败', 'error');
+            }
+        }
+
+        // 获取图谱统计
+        async function getGraphStats() {
+            try {
+                const response = await fetch('/api/advanced-rag/graph-stats');
+                const data = await response.json();
+
+                showAdvancedRAGMessage('图谱统计获取成功', 'success');
+                displayAdvancedRAGResult('图谱统计', data);
+
+            } catch (error) {
+                console.error('获取图谱统计失败:', error);
+                showAdvancedRAGMessage('获取图谱统计失败', 'error');
+            }
+        }
+
+        // 清理高级缓存
+        async function clearAdvancedCaches() {
+            try {
+                const response = await fetch('/api/advanced-rag/clear-caches', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('缓存清理成功', 'success');
+                } else {
+                    showAdvancedRAGMessage('缓存清理失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('缓存清理失败:', error);
+                showAdvancedRAGMessage('缓存清理失败', 'error');
+            }
+        }
+
+        // 可视化图谱
+        function visualizeGraph() {
+            showAdvancedRAGMessage('图谱可视化功能开发中...', 'info');
+            // 这里可以集成图谱可视化库，如D3.js、vis.js等
+        }
+
+        // 测试向量化
+        async function testVectorization() {
+            const text = $('#vectorize_text').val().trim();
+            const fusionStrategy = $('#fusion_strategy').val();
+            const imagePath = $('#advanced_image_path').val().trim();
+
+            if (!text) {
+                showAdvancedRAGMessage('请输入测试文本', 'warning');
+                return;
+            }
+
+            try {
+                showAdvancedRAGMessage('正在执行向量化...', 'info');
+
+                const response = await fetch('/api/advanced-rag/vectorize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        image_path: imagePath || undefined,
+                        fusion_strategy: fusionStrategy
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAdvancedRAGMessage('向量化成功', 'success');
+
+                    // 显示向量化结果（不显示完整向量，只显示统计信息）
+                    const resultInfo = {
+                        vector_type: data.vector_type,
+                        dimension: data.dimension,
+                        fusion_strategy: data.fusion_strategy,
+                        vector_preview: data.embedding.slice(0, 5).map(x => x.toFixed(4))
+                    };
+
+                    displayAdvancedRAGResult('向量化测试', resultInfo);
+                } else {
+                    showAdvancedRAGMessage('向量化失败: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('向量化测试失败:', error);
+                showAdvancedRAGMessage('向量化测试失败', 'error');
+            }
+        }
+
+        // 显示高级RAG消息
+        function showAdvancedRAGMessage(message, type = 'info') {
+            const colors = {
+                'success': '#4CAF50',
+                'error': '#f44336',
+                'warning': '#ff9800',
+                'info': '#2196F3'
+            };
+
+            const messageHtml = `
+                <div style="background: ${colors[type]}; color: white; padding: 6px; margin: 3px 0; border-radius: 3px; font-size: 11px;">
+                    ${message}
+                </div>
+            `;
+
+            $('#advanced_rag_results').prepend(messageHtml);
+
+            // 限制消息数量
+            const messages = $('#advanced_rag_results').children();
+            if (messages.length > 10) {
+                messages.slice(10).remove();
+            }
+        }
+
+        // 显示高级RAG结果
+        function displayAdvancedRAGResult(operation, data) {
+            const resultHtml = `
+                <div style="border: 1px solid #ddd; padding: 6px; margin: 5px 0; border-radius: 3px; font-size: 10px; background: #f9f9f9;">
+                    <div style="font-weight: bold; color: #333;">${operation} 结果:</div>
+                    <pre style="margin: 3px 0; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+
+            $('#advanced_rag_results').prepend(resultHtml);
+
+            // 限制结果数量
+            const results = $('#advanced_rag_results').children();
+            if (results.length > 5) {
+                results.slice(5).remove();
+            }
+        }
+
+        // 更新高级RAG统计信息
+        function updateAdvancedRAGStatistics(status) {
+            if (!status) return;
+
+            let statsHtml = '<div style="font-weight: bold;">高级RAG统计:</div>';
+
+            if (status.processing_stats) {
+                const stats = status.processing_stats;
+                statsHtml += `
+                    <div>文档处理: ${stats.documents_processed}</div>
+                    <div>查询处理: ${stats.queries_processed}</div>
+                    <div>推理请求: ${stats.reasoning_requests}</div>
+                    <div>融合操作: ${stats.fusion_operations}</div>
+                `;
+            }
+
+            if (status.knowledge_graph_stats) {
+                const kgStats = status.knowledge_graph_stats;
+                statsHtml += `
+                    <div>图谱节点: ${kgStats.nodes}</div>
+                    <div>图谱边: ${kgStats.edges}</div>
+                `;
+            }
+
+            if (status.integration_status) {
+                const integration = status.integration_status;
+                statsHtml += `
+                    <div>基础RAG: ${integration.basic_rag_available ? '✓' : '✗'}</div>
+                    <div>多模态: ${integration.multimodal_available ? '✓' : '✗'}</div>
+                `;
+            }
+
+            $('#advanced_rag_statistics').html(statsHtml);
+        }
+
+        // 页面加载完成后初始化
+        $(document).ready(function() {
+            initRAG();
+            initAdvancedEmotionSystem();
+            initMultimodalSystem();
+            initVoiceEmotionSystem();
+            initAdvancedRAGSystem();
+        });
     </script>
 </body>
 </html>
