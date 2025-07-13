@@ -394,7 +394,12 @@ class AnimationSequencer:
             interpolated_params = current_keyframe.parameters.copy()
         else:
             # 在两个关键帧之间插值
-            t = (progress - current_keyframe.time) / (next_keyframe.time - current_keyframe.time)
+            time_diff = next_keyframe.time - current_keyframe.time
+            if time_diff <= 0:
+                # 避免除零错误，如果时间差为0或负数，使用当前关键帧
+                t = 1.0
+            else:
+                t = (progress - current_keyframe.time) / time_diff
             t = max(0.0, min(1.0, t))
             
             # 应用缓动函数

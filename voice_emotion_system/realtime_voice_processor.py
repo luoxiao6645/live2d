@@ -14,6 +14,9 @@ from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
+# 配置日志
+logger = logging.getLogger(__name__)
+
 try:
     from pydub import AudioSegment
     from pydub.playback import play
@@ -23,9 +26,6 @@ except ImportError:
     logger.warning("pydub不可用，音频处理功能将受限")
 
 from .voice_emotion_config import VoiceEmotionConfig, EmotionType, VoiceLanguage
-
-# 配置日志
-logger = logging.getLogger(__name__)
 
 class AudioTask:
     """音频任务类"""

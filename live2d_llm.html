@@ -1700,104 +1700,7 @@
             }
         }
 
-        // 发送消息并处理响应
-        async function sendMessage(message) {
-            const model = $("#llm_model").val();
-            const temperature = parseFloat($("#temperature").val());
-            const top_p = parseFloat($("#top_p").val());
-            const rolePrompt = $("#role_prompt").val();
-            const voiceId = $("#voice_selection").val();
 
-            // 禁用发送按钮，显示加载状态
-            $("#send_message").prop('disabled', true);
-            $("#text_talk").val($("#text_talk").val() + '\n用户: ' + message + '\n助手: ');
-
-            try {
-                // 修复角色设定问题，确保角色设定与API正确对接
-                console.log("发送请求，角色设定:", rolePrompt);
-
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        prompt: message,
-                        role_prompt: rolePrompt,  // 添加单独的角色设定字段
-                        session_id: null,  // 确保创建新会话
-                        model_name: model,
-                        temperature: temperature,
-                        top_p: top_p,
-                        voice_id: voiceId
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('API请求失败: ' + response.status);
-                }
-
-                const reader = response.body.getReader();
-                let fullResponse = '';
-                const textArea = document.getElementById('text_talk');
-
-                // 设置思考表情和动作
-                setModelExpression('疑惑');
-                playModelMotion('思考');
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const text = new TextDecoder().decode(value);
-                    const lines = text.split('\n').filter(line => line.trim());
-
-                    for (const line of lines) {
-                        try {
-                            const data = JSON.parse(line);
-                            if (data.chunk) {
-                                fullResponse += data.chunk;
-                                // 修复文本显示问题
-                                const currentText = textArea.value;
-                                const assistantPrefix = '助手: ';
-                                const assistantStartPos = currentText.lastIndexOf(assistantPrefix);
-
-                                if (assistantStartPos !== -1) {
-                                    textArea.value = currentText.substring(0, assistantStartPos + assistantPrefix.length) + fullResponse;
-                                    textArea.scrollTop = textArea.scrollHeight;
-                                }
-                            }
-
-                            if (data.done) {
-                                lastAudioUrl = data.audio_url;
-                                enableAudioControls(!!lastAudioUrl);
-
-                                // 分析响应文本，设置表情和动作
-                                analyzeEmotionAndPlayAction(fullResponse);
-
-                                if (lastAudioUrl) {
-                                    updateAudioStatus('语音生成完成');
-                                    playAudio(); // 自动播放
-                                } else {
-                                    updateAudioStatus('未生成语音');
-                                }
-                            }
-                        } catch (e) {
-                            console.error('解析流数据失败:', e, line);
-                        }
-                    }
-                }
-
-                // 恢复按钮状态
-                $("#send_message").prop('disabled', false);
-            } catch (error) {
-                console.error('发送消息失败:', error);
-                $("#text_talk").val($("#text_talk").val() + '发送失败: ' + error.message);
-                $("#send_message").prop('disabled', false);
-
-                // 设置悲伤表情
-                setModelExpression('悲伤');
-            }
-        }
 
         // 语音识别相关变量和函数
         let isRecording = false;
@@ -2480,6 +2383,9 @@ git lfs pull</pre>`;
             }
         }
 
+        // ======== 会话管理 ========
+        let currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
         // ======== RAG 功能 ========
         let ragEnabled = false;
         let knowledgeBaseInfo = {};
@@ -2617,6 +2523,45 @@ git lfs pull</pre>`;
             $('#document_list').html(listHtml);
         }
 
+        // 添加消息到对话框
+        function appendMessage(sender, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const currentText = $('#text_talk').val();
+            const newMessage = `[${timestamp}] ${sender}: ${message}\n`;
+            $('#text_talk').val(currentText + newMessage);
+
+            // 滚动到底部
+            const textArea = document.getElementById('text_talk');
+            textArea.scrollTop = textArea.scrollHeight;
+        }
+
+        // 更新最后一条消息
+        function updateLastMessage(sender, message) {
+            const textArea = $('#text_talk');
+            const currentText = textArea.val();
+            const lines = currentText.split('\n');
+
+            // 找到最后一条来自指定发送者的消息
+            let messageUpdated = false;
+            for (let i = lines.length - 1; i >= 0; i--) {
+                if (lines[i].includes(`] ${sender}: `)) {
+                    const timestamp = lines[i].match(/\[(.*?)\]/)?.[1] || new Date().toLocaleTimeString();
+                    lines[i] = `[${timestamp}] ${sender}: ${message}`;
+                    messageUpdated = true;
+                    break;
+                }
+            }
+
+            // 如果没有找到要更新的消息，添加新消息
+            if (!messageUpdated) {
+                const timestamp = new Date().toLocaleTimeString();
+                lines.push(`[${timestamp}] ${sender}: ${message}`);
+            }
+
+            textArea.val(lines.join('\n'));
+            textArea.scrollTop(textArea[0].scrollHeight);
+        }
+
         // 搜索文档
         async function searchDocuments() {
             const query = $('#search_query').val().trim();
@@ -2660,20 +2605,28 @@ git lfs pull</pre>`;
         }
 
         // 修改发送消息函数以支持RAG
-        function sendMessage() {
-            const userInput = $('#user_input').val().trim();
+        function sendMessage(message) {
+            const userInput = message || $('#user_input').val().trim();
             if (!userInput) return;
 
             const modelName = $('#llm_model').val();
             const temperature = parseFloat($('#temperature').val());
             const topP = parseFloat($('#top_p').val());
             const rolePrompt = $('#role_prompt').val();
+            const voiceId = $('#voice_selection').val();
+
+            // 禁用发送按钮，显示加载状态
+            $('#send_message').prop('disabled', true);
 
             // 清空输入框
             $('#user_input').val('');
 
             // 显示用户消息
             appendMessage('用户', userInput);
+
+            // 设置思考表情和动作
+            setModelExpression('疑惑');
+            playModelMotion('思考');
 
             // 准备请求数据
             const requestData = {
@@ -2683,6 +2636,7 @@ git lfs pull</pre>`;
                 model_name: modelName,
                 temperature: temperature,
                 top_p: topP,
+                voice_id: voiceId,
                 use_rag: ragEnabled
             };
 
@@ -2706,6 +2660,7 @@ git lfs pull</pre>`;
             .then(reader => {
                 let assistantMessage = '';
                 let retrievedDocs = [];
+                let messageInitialized = false;
 
                 function readStream() {
                     return reader.read().then(({ done, value }) => {
@@ -2714,7 +2669,9 @@ git lfs pull</pre>`;
                         const chunk = new TextDecoder().decode(value);
                         const lines = chunk.split('\n');
 
-                        lines.forEach(line => {
+                        let streamShouldContinue = true;
+
+                        for (const line of lines) {
                             if (line.trim()) {
                                 try {
                                     const data = JSON.parse(line);
@@ -2737,11 +2694,24 @@ git lfs pull</pre>`;
                                         handleEmotionAnalysis(data.emotion_data);
                                     } else if (data.chunk && !data.done) {
                                         assistantMessage += data.chunk;
-                                        updateLastMessage('AI助手', assistantMessage);
-                                    } else if (data.done) {
+
+                                        // 只在第一次收到chunk时创建消息
+                                        if (!messageInitialized) {
+                                            appendMessage('AI助手', assistantMessage);
+                                            messageInitialized = true;
+                                        } else {
+                                            updateLastMessage('AI助手', assistantMessage);
+                                        }
+                                    } else if (data.done === true) {
                                         if (data.audio_url) {
                                             currentAudioUrl = data.audio_url;
+                                            lastAudioUrl = data.audio_url;
                                             $('#play_audio').prop('disabled', false);
+                                            enableAudioControls(true);
+                                            updateAudioStatus('语音生成完成');
+                                            playAudio(); // 自动播放
+                                        } else {
+                                            updateAudioStatus('未生成语音');
                                         }
 
                                         // 处理情感分析结果
@@ -2757,31 +2727,46 @@ git lfs pull</pre>`;
                                             applyLive2DParameters(data.live2d_parameters);
                                         }
 
+                                        // 分析响应文本，设置表情和动作
+                                        analyzeEmotionAndPlayAction(assistantMessage);
+
                                         // 显示RAG使用信息
                                         if (data.used_rag && data.retrieved_docs_count > 0) {
                                             const ragInfo = `\n<small style="color: #666;">[使用了 ${data.retrieved_docs_count} 个文档片段]</small>`;
                                             updateLastMessage('AI助手', assistantMessage + ragInfo);
                                         }
 
+                                        // 恢复按钮状态
+                                        $('#send_message').prop('disabled', false);
+
+                                        // 停止流处理，直接返回
                                         return;
                                     }
                                 } catch (e) {
                                     console.error('解析响应失败:', e);
                                 }
                             }
-                        });
+                        }
 
-                        return readStream();
+                        // 继续读取下一个chunk
+                        if (!done) {
+                            return readStream();
+                        }
                     });
                 }
 
-                // 开始显示助手消息
-                appendMessage('AI助手', '');
+                // 开始读取流
                 return readStream();
             })
             .catch(error => {
                 console.error('发送消息失败:', error);
                 appendMessage('系统', '发送消息失败: ' + error.message);
+
+                // 恢复按钮状态
+                $('#send_message').prop('disabled', false);
+
+                // 设置悲伤表情
+                setModelExpression('悲伤');
             });
         }
 
@@ -3002,7 +2987,7 @@ git lfs pull</pre>`;
                 } catch (error) {
                     // 静默处理错误，避免控制台刷屏
                 }
-            }, 100); // 10 FPS更新频率
+            }, 1000); // 1 FPS更新频率，减少服务器负载
         }
 
         // 停止情感参数更新

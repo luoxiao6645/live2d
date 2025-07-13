@@ -6,6 +6,7 @@
 
 import logging
 import re
+import os
 import networkx as nx
 from typing import Dict, List, Optional, Any, Tuple, Set
 from datetime import datetime
@@ -549,7 +550,6 @@ class KnowledgeGraphBuilder:
                 file_path = self.config.KNOWLEDGE_GRAPH_CONFIG["graph_storage"]["file_path"]
             
             # 确保目录存在
-            import os
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             
             # 保存图结构

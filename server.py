@@ -8,9 +8,11 @@ import asyncio
 import threading
 import time
 from datetime import datetime, timedelta
+from enum import Enum
 from flask import Flask, jsonify, send_from_directory, request, Response, stream_with_context
 from flask_cors import CORS
 import edge_tts
+from ollama_client import OllamaClient
 
 # 导入RAG相关模块
 try:
@@ -53,15 +55,14 @@ except ImportError as e:
     logging.warning(f"语音情感系统模块加载失败: {e}")
     logging.warning("语音情感系统功能将不可用")
 
-# 导入高级RAG系统模块
+# 高级RAG系统模块（可选功能）
+ADVANCED_RAG_SYSTEM_AVAILABLE = False
 try:
     from advanced_rag_system import AdvancedRAGManager
     ADVANCED_RAG_SYSTEM_AVAILABLE = True
     logging.info("高级RAG系统模块加载成功")
-except ImportError as e:
-    ADVANCED_RAG_SYSTEM_AVAILABLE = False
-    logging.warning(f"高级RAG系统模块加载失败: {e}")
-    logging.warning("高级RAG系统功能将不可用")
+except ImportError:
+    logging.info("高级RAG系统模块未安装，使用基础RAG功能")
 
 # 导入语音识别模块
 try:
@@ -84,12 +85,56 @@ except ImportError as e:
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# 自定义JSON编码器，处理枚举类型
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
+
+def convert_enum_keys(obj):
+    """递归转换字典中的枚举键为字符串"""
+    if isinstance(obj, dict):
+        new_dict = {}
+        for key, value in obj.items():
+            # 转换枚举键为字符串
+            if isinstance(key, Enum):
+                new_key = key.value
+            else:
+                new_key = key
+            # 递归处理值
+            new_dict[new_key] = convert_enum_keys(value)
+        return new_dict
+    elif isinstance(obj, list):
+        return [convert_enum_keys(item) for item in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    else:
+        return obj
+
+def safe_json_dumps(obj):
+    """安全的JSON序列化，处理枚举类型"""
+    # 先转换枚举键，再序列化
+    converted_obj = convert_enum_keys(obj)
+    return json.dumps(converted_obj, cls=CustomJSONEncoder, ensure_ascii=False)
+
 app = Flask(__name__)
 CORS(app)
 
 OLLAMA_API_URL = "http://127.0.0.1:11434"
 MAX_HISTORY = 10  # 最大历史记录轮数
 SESSION_TIMEOUT = 7200  # 会话超时时间（秒）
+
+# 初始化Ollama客户端
+try:
+    ollama_client = OllamaClient(base_url=OLLAMA_API_URL)
+    OLLAMA_CLIENT_AVAILABLE = True
+    logging.info("Ollama客户端初始化成功")
+except Exception as e:
+    OLLAMA_CLIENT_AVAILABLE = False
+    ollama_client = None
+    logging.error(f"Ollama客户端初始化失败: {e}")
+    logging.warning("将使用直接API调用方式")
 
 # ======== 上下文管理类 ========
 class SessionManager:
@@ -292,7 +337,7 @@ def generate():
                     )
 
                     # 发送情感分析结果
-                    yield json.dumps({
+                    yield safe_json_dumps({
                         "session_id": session_id,
                         "type": "emotion_analysis",
                         "emotion_data": emotion_analysis_result,
@@ -302,68 +347,114 @@ def generate():
                 except Exception as e:
                     logger.warning(f"情感分析失败: {e}")
 
-            response = requests.post(
-                f"{OLLAMA_API_URL}/api/generate",
-                json={
-                    "model": model_name,
-                    "prompt": full_prompt,
-                    "stream": True,
-                    "options": {
-                        "temperature": data.get('temperature', 0.7),
-                        "top_p": data.get('top_p', 1.0)
-                    }
-                },
-                stream=True
-            )
+            # 使用OllamaClient或直接API调用
+            use_ollama_client = False
+            if OLLAMA_CLIENT_AVAILABLE and ollama_client:
+                try:
+                    response = ollama_client.generate_for_web(
+                        model=model_name,
+                        prompt=full_prompt,
+                        temperature=data.get('temperature', 0.7),
+                        top_p=data.get('top_p', 1.0)
+                    )
+                    use_ollama_client = True
+                except Exception as e:
+                    logger.error(f"OllamaClient调用失败，回退到直接API: {e}")
+                    use_ollama_client = False
+
+            if not use_ollama_client:
+                response = requests.post(
+                    f"{OLLAMA_API_URL}/api/generate",
+                    json={
+                        "model": model_name,
+                        "prompt": full_prompt,
+                        "stream": True,
+                        "options": {
+                            "temperature": data.get('temperature', 0.7),
+                            "top_p": data.get('top_p', 1.0)
+                        }
+                    },
+                    stream=True
+                )
 
             try:
-                for line in response.iter_lines(decode_unicode=True):
-                    if line:
-                        chunk = json.loads(line)
-                        if 'response' in chunk:
+                logger.info(f"开始流式响应处理，使用OllamaClient: {use_ollama_client}")
+                if use_ollama_client:
+                    # 处理OllamaClient的生成器响应
+                    chunk_count = 0
+                    for chunk in response:
+                        chunk_count += 1
+                        logger.debug(f"OllamaClient chunk {chunk_count}: {chunk}")
+                        if chunk.get('response'):
                             full_response += chunk['response']
-                            yield json.dumps({
+                            yield safe_json_dumps({
                                 "session_id": session_id,
                                 "chunk": chunk['response'],
                                 "done": False
                             }) + "\n"
 
                         if chunk.get('done'):
-                            # 分析AI回复的情感（用于调整表情）
-                            ai_emotion_result = None
-                            if EMOTION_SYSTEM_AVAILABLE and emotion_controller and full_response:
-                                try:
-                                    ai_emotion_result = emotion_controller.process_text_input(
-                                        full_response, trigger_animation=True
-                                    )
-                                except Exception as e:
-                                    logger.warning(f"AI回复情感分析失败: {e}")
+                            logger.info(f"OllamaClient流式响应完成，总共处理 {chunk_count} 个chunk")
+                            break
+                else:
+                    # 处理requests的流式响应
+                    line_count = 0
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line:
+                            line_count += 1
+                            logger.debug(f"Requests line {line_count}: {line}")
+                            chunk = json.loads(line)
+                            if 'response' in chunk:
+                                full_response += chunk['response']
+                                yield safe_json_dumps({
+                                    "session_id": session_id,
+                                    "chunk": chunk['response'],
+                                    "done": False
+                                }) + "\n"
 
-                            # 保存完整对话
-                            session_manager.add_message(session_id, "user", user_input)
-                            session_manager.add_message(session_id, "assistant", full_response)
+                            if chunk.get('done'):
+                                logger.info(f"Requests流式响应完成，总共处理 {line_count} 行")
+                                break
 
-                            # 生成语音
-                            audio_file = asyncio.run(text_to_speech(full_response.strip()))
+                # 分析AI回复的情感（用于调整表情）
+                ai_emotion_result = None
+                if EMOTION_SYSTEM_AVAILABLE and emotion_controller and full_response:
+                    try:
+                        ai_emotion_result = emotion_controller.process_text_input(
+                            full_response, trigger_animation=True
+                        )
+                    except Exception as e:
+                        logger.warning(f"AI回复情感分析失败: {e}")
 
-                            # 准备完成数据
-                            completion_data = {
-                                "session_id": session_id,
-                                "chunk": "",
-                                "done": True,
-                                "audio_url": f"/audio/{os.path.basename(audio_file)}" if audio_file else None
-                            }
+                # 保存完整对话
+                session_manager.add_message(session_id, "user", user_input)
+                session_manager.add_message(session_id, "assistant", full_response)
 
-                            # 添加情感分析结果
-                            if emotion_analysis_result:
-                                completion_data["user_emotion"] = emotion_analysis_result
-                            if ai_emotion_result:
-                                completion_data["ai_emotion"] = ai_emotion_result
-                                completion_data["live2d_parameters"] = emotion_controller.get_current_live2d_parameters()
+                # 生成语音
+                audio_file = asyncio.run(text_to_speech(full_response.strip()))
 
-                            yield json.dumps(completion_data) + "\n"
+                # 准备完成数据
+                completion_data = {
+                    "session_id": session_id,
+                    "chunk": "",
+                    "done": True,
+                    "audio_url": f"/audio/{os.path.basename(audio_file)}" if audio_file else None
+                }
+
+                # 添加情感分析结果
+                if emotion_analysis_result:
+                    completion_data["user_emotion"] = emotion_analysis_result
+                if ai_emotion_result:
+                    completion_data["ai_emotion"] = ai_emotion_result
+                    completion_data["live2d_parameters"] = emotion_controller.get_current_live2d_parameters()
+
+                yield safe_json_dumps(completion_data) + "\n"
+            except Exception as e:
+                logger.error(f"流式响应处理失败: {e}")
             finally:
-                response.close()
+                # 只有requests响应对象才有close方法
+                if not use_ollama_client and hasattr(response, 'close'):
+                    response.close()
 
         return Response(stream_with_context(generate_stream()), content_type='application/json')
 
@@ -445,19 +536,44 @@ def rag_generate():
                     context = session_manager.get_context(session_id)
                     full_prompt = f"{role_prompt}\n\n对话历史：\n{context}\n\n用户：{user_input}\n助手："
 
-                    response = requests.post(
-                        f"{OLLAMA_API_URL}/api/generate",
-                        json={
-                            "model": model_name,
-                            "prompt": full_prompt,
-                            "stream": True,
-                            "options": {
-                                "temperature": temperature,
-                                "top_p": data.get('top_p', 1.0)
-                            }
-                        },
-                        stream=True
-                    )
+                    # 使用OllamaClient或直接API调用
+                    if OLLAMA_CLIENT_AVAILABLE and ollama_client:
+                        try:
+                            response = ollama_client.generate_for_web(
+                                model=model_name,
+                                prompt=full_prompt,
+                                temperature=temperature,
+                                top_p=data.get('top_p', 1.0)
+                            )
+                        except Exception as e:
+                            logger.error(f"RAG模式OllamaClient调用失败，回退到直接API: {e}")
+                            response = requests.post(
+                                f"{OLLAMA_API_URL}/api/generate",
+                                json={
+                                    "model": model_name,
+                                    "prompt": full_prompt,
+                                    "stream": True,
+                                    "options": {
+                                        "temperature": temperature,
+                                        "top_p": data.get('top_p', 1.0)
+                                    }
+                                },
+                                stream=True
+                            )
+                    else:
+                        response = requests.post(
+                            f"{OLLAMA_API_URL}/api/generate",
+                            json={
+                                "model": model_name,
+                                "prompt": full_prompt,
+                                "stream": True,
+                                "options": {
+                                    "temperature": temperature,
+                                    "top_p": data.get('top_p', 1.0)
+                                }
+                            },
+                            stream=True
+                        )
 
                     for line in response.iter_lines(decode_unicode=True):
                         if line:
@@ -1013,7 +1129,6 @@ def synthesize_emotion_voice():
                 return jsonify({"error": "实时合成任务提交失败"}), 500
         else:
             # 同步合成
-            import asyncio
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
@@ -1170,7 +1285,6 @@ def test_voice_synthesis():
         data = request.get_json()
         test_text = data.get('text', '你好，这是语音测试。')
 
-        import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -1405,6 +1519,35 @@ def clear_advanced_rag_caches():
 def serve_audio(filename):
     temp_dir = tempfile.gettempdir()
     return send_from_directory(temp_dir, filename)
+
+@app.route('/api/ollama/status')
+def ollama_status():
+    """检查Ollama服务状态"""
+    try:
+        if OLLAMA_CLIENT_AVAILABLE and ollama_client:
+            models = ollama_client.get_available_models()
+            return jsonify({
+                "status": "connected",
+                "client_available": True,
+                "available_models": models,
+                "model_count": len(models)
+            })
+        else:
+            # 尝试直接连接
+            response = requests.get(f"{OLLAMA_API_URL}/api/tags", timeout=5)
+            models = [model["name"] for model in response.json().get("models", [])]
+            return jsonify({
+                "status": "connected",
+                "client_available": False,
+                "available_models": models,
+                "model_count": len(models)
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "disconnected",
+            "error": str(e),
+            "client_available": OLLAMA_CLIENT_AVAILABLE
+        }), 503
 
 @app.route('/get_model_list')
 def get_model_list():

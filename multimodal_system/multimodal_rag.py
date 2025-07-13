@@ -16,6 +16,9 @@ from .image_processor import ImageProcessor
 from .image_analyzer import ImageAnalyzer
 from .vision_language_model import VisionLanguageModel
 
+# 配置日志
+logger = logging.getLogger(__name__)
+
 # 尝试导入RAG相关模块
 try:
     from rag_manager import RAGManager
@@ -24,9 +27,6 @@ try:
 except ImportError:
     RAG_AVAILABLE = False
     logger.warning("RAG模块不可用，多模态RAG功能将受限")
-
-# 配置日志
-logger = logging.getLogger(__name__)
 
 class MultimodalRAG:
     """多模态RAG处理器类"""

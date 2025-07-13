@@ -8,7 +8,7 @@ from datetime import datetime
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -60,7 +60,7 @@ class RAGManager:
     def _init_embeddings(self):
         """初始化嵌入模型"""
         try:
-            self.embeddings = SentenceTransformerEmbeddings(
+            self.embeddings = HuggingFaceEmbeddings(
                 model_name=self.embedding_model_name
             )
             logger.info(f"嵌入模型 {self.embedding_model_name} 加载成功")

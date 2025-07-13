@@ -248,9 +248,17 @@ class VoiceEmotionManager:
     def get_system_status(self) -> Dict[str, Any]:
         """获取系统状态"""
         try:
+            # 转换设置中的枚举类型为字符串
+            serializable_settings = {}
+            for key, value in self.current_settings.items():
+                if hasattr(value, 'value'):  # 枚举类型
+                    serializable_settings[key] = value.value
+                else:
+                    serializable_settings[key] = value
+
             return {
                 "is_active": self.is_active,
-                "current_settings": self.current_settings,
+                "current_settings": serializable_settings,
                 "synthesizer_stats": self.synthesizer.get_synthesis_stats(),
                 "style_controller": {
                     "current_style": self.style_controller.current_style,
