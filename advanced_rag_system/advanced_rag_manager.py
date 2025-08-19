@@ -6,6 +6,7 @@
 
 import logging
 import asyncio
+import os
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
 
@@ -494,13 +495,20 @@ class AdvancedRAGManager:
         """保存系统状态"""
         try:
             # 保存知识图谱
-            self.kg_builder.save_graph()
-            
+            if hasattr(self.kg_builder, 'save_graph') and callable(self.kg_builder.save_graph):
+                self.kg_builder.save_graph()
+
             # 保存向量化缓存
-            self.vectorizer.save_cache("./embeddings_cache/vectorizer_cache.pkl")
-            
+            cache_dir = "./embeddings_cache"
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir, exist_ok=True)
+
+            cache_file = os.path.join(cache_dir, "vectorizer_cache.pkl")
+            if hasattr(self.vectorizer, 'save_cache') and callable(self.vectorizer.save_cache):
+                self.vectorizer.save_cache(cache_file)
+
             logger.info("系统状态保存成功")
-            
+
         except Exception as e:
             logger.error(f"系统状态保存失败: {e}")
     

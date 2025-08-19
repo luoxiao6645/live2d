@@ -2051,5 +2051,44 @@ else:
             }
         })
 
+@app.route('/api/health')
+def health_check():
+    """健康检查接口"""
+    return jsonify({
+        "status": "healthy",
+        "timestamp": time.time(),
+        "services": {
+            "ollama": OLLAMA_CLIENT_AVAILABLE,
+            "rag": RAG_AVAILABLE,
+            "emotion": EMOTION_SYSTEM_AVAILABLE,
+            "multimodal": MULTIMODAL_SYSTEM_AVAILABLE,
+            "voice_emotion": VOICE_EMOTION_SYSTEM_AVAILABLE,
+            "advanced_rag": ADVANCED_RAG_SYSTEM_AVAILABLE,
+            "voice_recognition": VOICE_RECOGNITION_AVAILABLE
+        }
+    })
+
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    import os
+    import sys
+
+    # 检查Python版本兼容性
+    if sys.version_info >= (3, 13):
+        # Python 3.13+有Flask调试模式的兼容性问题，使用生产模式
+        logger.warning("检测到Python 3.13+，禁用调试模式以避免兼容性问题")
+        debug_mode = False
+    else:
+        debug_mode = os.getenv("DEBUG", "False").lower() == "true"
+
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", 5000))
+
+    logger.info(f"启动Live2D AI助手服务器...")
+    logger.info(f"地址: http://{host}:{port}")
+    logger.info(f"调试模式: {debug_mode}")
+
+    try:
+        app.run(host=host, port=port, debug=debug_mode, threaded=True)
+    except Exception as e:
+        logger.error(f"启动服务器失败: {e}")
+        sys.exit(1)
